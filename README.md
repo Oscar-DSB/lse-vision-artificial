@@ -41,7 +41,7 @@ Este proyecto implementa un sistema de visión artificial capaz de reconocer las
 
 ## Demostración / Demo
 
-**[`LSE_demo.mp4`](LSE_demo.mp4)** — vídeo demo del sistema en funcionamiento (webcam en tiempo real).
+**[Ver demo en YouTube →](https://youtu.be/s2fB30ND7Ng)**
 
 La interfaz web muestra el fotograma de cámara, la letra detectada, la confianza del clasificador y un historial de las últimas letras reconocidas.
 
