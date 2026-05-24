@@ -43,6 +43,13 @@ Este proyecto implementa un sistema de visión artificial capaz de reconocer las
 
 **[Ver demo en YouTube →](https://youtu.be/s2fB30ND7Ng)**
 
+### Dataset y recursos adicionales
+
+| Recurso | Enlace |
+|---|---|
+| Dataset imágenes (4.4 GB) | [Google Drive](https://drive.google.com/drive/folders/1U8pjtmTOfe3LwwoDTvOcZzSaXe_kRURU?usp=sharing) |
+| Dataset landmarks CSV (113 MB) | [GitHub Releases v1.0](https://github.com/Oscar-DSB/lse-vision-artificial/releases/tag/v1.0) |
+
 La interfaz web muestra el fotograma de cámara, la letra detectada, la confianza del clasificador y un historial de las últimas letras reconocidas.
 
 ---
