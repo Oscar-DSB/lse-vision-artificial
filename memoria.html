@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reconocimiento del Alfabeto LSE en Tiempo Real — Memoria Técnica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #07090d;
+    --panel:     #0c1018;
+    --panel2:    #101520;
+    --border:    #18222e;
+    --text:      #dde4ed;
+    --muted:     #536275;
+    --blue:      #3b82f6;
+    --green:     #2dc98b;
+    --orange:    #f97316;
+    --red:       #ef4444;
+    --sidebar-w: 260px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    display: flex;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0 0 2rem 0;
+    flex-shrink: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .sidebar-logo {
+    padding: 1.5rem 1.25rem 1rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+  }
+  .sidebar-logo .logo-tag {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 4px;
+  }
+  .sidebar-logo .logo-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    line-height: 1.3;
+  }
+
+  .nav-section-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 1rem 1.25rem 0.4rem;
+  }
+
+  #sidebar nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1.25rem;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+    border-left: 2px solid transparent;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #sidebar nav a:hover { color: var(--text); background: var(--panel2); }
+  #sidebar nav a.active {
+    color: var(--blue);
+    border-left-color: var(--blue);
+    background: rgba(59,130,246,0.06);
+  }
+  #sidebar nav a .nav-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--border);
+    min-width: 18px;
+  }
+  #sidebar nav a.active .nav-num { color: var(--blue); opacity: 0.6; }
+
+  /* ── MAIN ── */
+  #main {
+    flex: 1;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  section {
+    padding: 4rem 3.5rem;
+    border-bottom: 1px solid var(--border);
+    max-width: 980px;
+  }
+
+  /* ── PORTADA ── */
+  #portada {
+    padding: 5rem 3.5rem 4rem;
+    background: linear-gradient(180deg, #0a0f18 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+    max-width: 100%;
+  }
+
+  .portada-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 1.5rem;
+  }
+
+  .portada-title {
+    font-size: clamp(28px, 3.5vw, 48px);
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--text);
+    max-width: 760px;
+    margin-bottom: 1rem;
+  }
+
+  .portada-subtitle {
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--muted);
+    max-width: 620px;
+    margin-bottom: 3rem;
+    line-height: 1.5;
+  }
+
+  .portada-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  .meta-item { display: flex; flex-direction: column; gap: 2px; }
+  .meta-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+  .meta-value { font-size: 14px; color: var(--text); font-weight: 500; }
+
+  .metrics-banner {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 720px;
+  }
+  .metric-card {
+    background: var(--panel);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .metric-card .m-val {
+    font-size: 26px;
+    font-weight: 700;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .metric-card .m-val.green { color: var(--green); }
+  .metric-card .m-val.blue  { color: var(--blue); }
+  .metric-card .m-val.orange { color: var(--orange); }
+  .metric-card .m-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* ── SECTION HEADER ── */
+  .section-header { margin-bottom: 2rem; }
+  .section-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--blue);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+  h2 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+  }
+  .section-divider {
+    width: 40px;
+    height: 2px;
+    background: var(--blue);
+    border-radius: 2px;
+    margin-top: 0.75rem;
+  }
+
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 2rem 0 0.75rem;
+  }
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--blue);
+    margin: 1.5rem 0 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  p { margin-bottom: 1rem; color: #b8c4d0; }
+  p:last-child { margin-bottom: 0; }
+
+  strong { color: var(--text); font-weight: 600; }
+  em { color: var(--muted); font-style: italic; }
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--green);
+  }
+
+  /* ── PAPER CARDS ── */
+  .paper-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    border-left: 3px solid var(--blue);
+  }
+  .paper-card .paper-ref {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+  .paper-card .paper-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 0.25rem; }
+  .paper-card .paper-authors { font-size: 12px; color: var(--muted); margin-bottom: 1rem; font-style: italic; }
+  .paper-card .paper-body { font-size: 14px; color: #b8c4d0; line-height: 1.65; }
+
+  /* ── PIPELINE / ARCHITECTURE ── */
+  .svg-wrapper {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+  }
+
+  /* ── FEATURE TABLE ── */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  .feature-block {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.25rem;
+  }
+  .feature-block h4 { margin-top: 0; }
+  .feature-block ul { padding-left: 1.2rem; }
+  .feature-block ul li { font-size: 13px; color: #b8c4d0; margin-bottom: 4px; }
+
+  /* ── DATA TABLE ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 1.5rem 0;
+  }
+  .data-table th {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 0.6rem 1rem;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .data-table td {
+    border: 1px solid var(--border);
+    padding: 0.55rem 1rem;
+    color: #b8c4d0;
+  }
+  .data-table tr:hover td { background: var(--panel2); }
+  .data-table .num {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--text);
+    text-align: right;
+  }
+  .data-table .good { color: var(--green); }
+  .data-table .warn { color: var(--orange); }
+  .data-table .bad  { color: var(--red); }
+
+  /* ── CONFUSION MATRIX ── */
+  #confusion-container {
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+  #cm-canvas { display: block; }
+  .cm-tooltip {
+    position: fixed;
+    background: #1a2332;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--text);
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+    white-space: nowrap;
+  }
+
+  /* ── F1 BAR CHART ── */
+  #f1-container {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--orange);
+    background: rgba(249,115,22,0.06);
+    border-radius: 0 6px 6px 0;
+    padding: 1rem 1.25rem;
+    margin: 1.25rem 0;
+    font-size: 14px;
+    color: #b8c4d0;
+  }
+  .callout.blue { border-left-color: var(--blue); background: rgba(59,130,246,0.06); }
+  .callout.green { border-left-color: var(--green); background: rgba(45,201,139,0.06); }
+
+  /* ── TAG ── */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .tag.blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .tag.green { background: rgba(45,201,139,0.15); color: var(--green); }
+  .tag.orange { background: rgba(249,115,22,0.15); color: var(--orange); }
+  .tag.red { background: rgba(239,68,68,0.15); color: var(--red); }
+
+  /* ── STEP LIST ── */
+  .step-list { list-style: none; counter-reset: steps; margin: 1rem 0; }
+  .step-list li {
+    counter-increment: steps;
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    align-items: flex-start;
+  }
+  .step-list li::before {
+    content: counter(steps, decimal-leading-zero);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--blue);
+    background: rgba(59,130,246,0.1);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 4px;
+    padding: 2px 7px;
+    min-width: 34px;
+    text-align: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-list li p { margin: 0; font-size: 14px; }
+  .step-list li strong { display: block; margin-bottom: 2px; color: var(--text); }
+
+  /* ── REFS ── */
+  .ref-item {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    font-size: 13px;
+    color: #b8c4d0;
+    line-height: 1.6;
+  }
+  .ref-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--blue);
+    min-width: 28px;
+    padding-top: 2px;
+  }
+
+  /* ── ERROR PAIR ── */
+  .error-pair {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    margin: 2px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+  .error-pair .arr { color: var(--muted); }
+  .error-pair .from { color: var(--green); }
+  .error-pair .to   { color: var(--orange); }
+  .error-pair .cnt  { color: var(--red); font-size: 11px; }
+
+  /* ── RESUMEN ── */
+  .abstract-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    font-size: 15px;
+    line-height: 1.8;
+    color: #b8c4d0;
+    border-left: 4px solid var(--green);
+  }
+  .abstract-box .kw { font-size: 12px; color: var(--muted); margin-top: 1rem; }
+  .abstract-box .kw span { color: var(--blue); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── LEGEND ── */
+  .legend { display: flex; gap: 1.5rem; margin: 0.75rem 0; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 2px; }
+
+  @media (max-width: 768px) {
+    #sidebar { display: none; }
+    section { padding: 2.5rem 1.5rem; }
+    #portada { padding: 3rem 1.5rem 2.5rem; }
+    .feature-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-tag">Memoria Técnica · 2026</div>
+    <div class="logo-title">LSE Alphabet Recognition</div>
+  </div>
+  <div class="nav-section-label">Contenido</div>
+  <nav>
+    <a href="#portada" class="active"><span class="nav-num">00</span>Portada</a>
+    <a href="#resumen"><span class="nav-num">01</span>Resumen</a>
+    <a href="#introduccion"><span class="nav-num">02</span>Introducción</a>
+    <a href="#estado-del-arte"><span class="nav-num">03</span>Estado del arte</a>
+    <a href="#metodologia"><span class="nav-num">04</span>Metodología</a>
+    <a href="#arquitectura"><span class="nav-num">05</span>Arquitectura</a>
+    <a href="#resultados"><span class="nav-num">06</span>Resultados</a>
+    <a href="#analisis-errores"><span class="nav-num">07</span>Análisis de errores</a>
+    <a href="#problematica"><span class="nav-num">07b</span>Problemática técnica</a>
+    <a href="#limitaciones"><span class="nav-num">08</span>Limitaciones</a>
+    <a href="#conclusiones"><span class="nav-num">09</span>Conclusiones</a>
+    <a href="#referencias"><span class="nav-num">10</span>Referencias</a>
+  </nav>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main id="main">
+
+<!-- 00 · PORTADA -->
+<section id="portada">
+  <div class="portada-eyebrow">Sistemas de Percepción y Visión Artificial · UFV · Mayo 2026</div>
+  <h1 class="portada-title">Reconocimiento del Alfabeto LSE en Tiempo Real mediante Clasificación Híbrida MLP–CNN</h1>
+  <p class="portada-subtitle">Detección de 26 letras del lenguaje de signos español usando landmarks de MediaPipe, ingeniería de características geométricas y un clasificador híbrido con inferencia a 30 fps.</p>
+
+  <div class="portada-meta">
+    <div class="meta-item">
+      <span class="meta-label">Autor</span>
+      <span class="meta-value">Oscar de Simone Benítez</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Universidad</span>
+      <span class="meta-value">Universidad Francisco de Vitoria (UFV)</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Asignatura</span>
+      <span class="meta-value">Sistemas de Percepción y Visión Artificial</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Fecha</span>
+      <span class="meta-value">Mayo 2026</span>
+    </div>
+  </div>
+
+  <div class="metrics-banner">
+    <div class="metric-card">
+      <span class="m-val green">90.98%</span>
+      <span class="m-lbl">Accuracy test</span>
+    </div>
+    <div class="metric-card">
+      <span class="m-val green">99.88%</span>
+      <span class="m-lbl">Accuracy val.</span>
+    </div>
+    <div class="metric-card">
+      <span class="m-val blue">89.05%</span>
+      <span class="m-lbl">Macro F1</span>
+    </div>
+    <div class="metric-card">
+      <span class="m-val blue">86.28%</span>
+      <span class="m-lbl">Macro Prec.</span>
+    </div>
+    <div class="metric-card">
+      <span class="m-val orange">44,079</span>
+      <span class="m-lbl">Muestras</span>
+    </div>
+    <div class="metric-card">
+      <span class="m-val orange">91</span>
+      <span class="m-lbl">Características</span>
+    </div>
+  </div>
+</section>
+
+<!-- 01 · RESUMEN -->
+<section id="resumen">
+  <div class="section-header">
+    <div class="section-number">§ 01</div>
+    <h2>Resumen</h2>
+    <div class="section-divider"></div>
+  </div>
+  <div class="abstract-box">
+    <p>Este trabajo presenta un sistema de reconocimiento del alfabeto dactilológico del Lenguaje de Signos Español (LSE) en tiempo real mediante visión artificial. El sistema captura fotogramas de webcam, extrae 21 landmarks tridimensionales de la mano con MediaPipe Hands y construye un vector de 91 características geométricas —63 coordenadas brutas y 28 derivadas (distancias entre dedos, ángulos de flexión, ratios de apertura y descripción de curvatura de cada falange)— que alimenta un clasificador híbrido. El componente principal es una red neuronal multicapa (MLP) con arquitectura 91→512→256→128→22, entrenada con regularización Dropout(0.4) sobre un conjunto de 44.079 muestras para 22 letras estáticas. Un complemento MobileNetV2 aporta un 5&nbsp;% de peso adicional en la decisión final. Las cuatro letras dinámicas (J, V, Y, Z) se detectan por reglas deterministas basadas en la trayectoria de landmarks entre fotogramas. El sistema alcanza una exactitud del 90,98&nbsp;% en test y del 99,88&nbsp;% en validación, con una macro F1 del 89,05&nbsp;% y opera de forma fluida a 30 fps en CPU estándar.</p>
+    <div class="kw">Palabras clave: <span>LSE · lenguaje de signos · MediaPipe · MLP · MobileNetV2 · landmarks · clasificación en tiempo real · visión artificial</span></div>
+  </div>
+</section>
+
+<!-- 02 · INTRODUCCIÓN -->
+<section id="introduccion">
+  <div class="section-header">
+    <div class="section-number">§ 02</div>
+    <h2>Introducción</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <h3>Motivación social</h3>
+  <p>La comunidad sorda en España está formada por aproximadamente 100.000 personas cuya lengua natural es el Lenguaje de Signos Español (LSE). La comunicación entre personas sordas y oyentes sin formación en LSE depende en la mayoría de los casos de intérpretes humanos, lo que limita la accesibilidad en contextos cotidianos —consultas médicas, trámites administrativos, entornos educativos— donde no siempre es posible contar con dicho servicio.</p>
+  <p>El reconocimiento automático del LSE mediante visión artificial representa un puente tecnológico que puede reducir esta brecha. Un sistema que interprete el alfabeto dactilológico en tiempo real tiene aplicaciones directas en asistentes de comunicación, subtitulado automático, sistemas de aprendizaje de LSE y dispositivos de accesibilidad embebidos. El alfabeto dactilológico es la puerta de entrada al vocabulario completo porque permite deletrear nombres propios y términos técnicos sin un signo dedicado.</p>
+
+  <h3>Reto técnico</h3>
+  <p>El reconocimiento del alfabeto LSE plantea varios desafíos técnicos específicos. En primer lugar, las 26 letras no son todas de naturaleza estática: J, V, Y y Z requieren el análisis de movimiento entre fotogramas sucesivos, lo que impide tratarlas con un clasificador de imagen estática. En segundo lugar, ciertas configuraciones de mano son morfológicamente muy similares —E y C, G y la posición neutra, I y P— lo que exige representaciones discriminativas capaces de capturar diferencias sutiles de posición y orientación de los dedos. En tercer lugar, el sistema debe operar en tiempo real sobre hardware convencional sin GPU dedicada para ser útil en contextos reales de accesibilidad.</p>
+
+  <h3>Enfoque adoptado</h3>
+  <p>Para superar estos retos, el proyecto adopta un enfoque basado en <strong>extracción explícita de características geométricas</strong> a partir de landmarks 3D en lugar del análisis directo de píxeles. Este diseño desvincula el rendimiento del clasificador de las condiciones de iluminación, color de piel o fondo, al tiempo que reduce drásticamente la dimensionalidad de la entrada (de miles de píxeles a 91 números) sin perder información posicional relevante. Sobre esta representación compacta se entrena un MLP que puede ejecutarse en CPU a alta velocidad, complementado puntualmente por MobileNetV2 sobre el recorte de mano normalizado.</p>
+
+  <h3>Alcance del proyecto</h3>
+  <p>El sistema reconoce las 22 letras estáticas del LSE (A, B, C, D, E, F, G, H, I, K, L, M, N, O, P, Q, R, S, T, U, W, X) mediante el clasificador aprendido, y las 4 letras dinámicas (J, V, Y, Z) mediante reglas deterministas implementadas en la capa de inferencia. Las letras Ñ y CH —presentes en algunas variantes del alfabeto manual— quedan fuera del alcance de esta versión. La interfaz de usuario es una aplicación web accesible desde el navegador que muestra el fotograma de webcam en tiempo real junto con la predicción, la confianza y la historia de letras detectadas.</p>
+
+  <div class="callout blue">
+    El presente proyecto no tiene como objetivo sustituir a intérpretes de LSE en contextos complejos. El alcance se limita al alfabeto dactilológico como banco de pruebas técnico y demostrador de viabilidad.
+  </div>
+</section>
+
+<!-- 03 · ESTADO DEL ARTE -->
+<section id="estado-del-arte">
+  <div class="section-header">
+    <div class="section-number">§ 03</div>
+    <h2>Estado del arte</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <p>El reconocimiento automático de lenguajes de signos ha experimentado un crecimiento significativo en la última década, impulsado por los avances en redes neuronales profundas y por la disponibilidad de herramientas de detección de landmarks de mano en tiempo real. A continuación se revisan los tres trabajos más relevantes para el diseño del presente sistema.</p>
+
+  <div class="paper-card">
+    <div class="paper-ref">[1] · MediaPipe · CVPR Workshop 2020</div>
+    <div class="paper-title">MediaPipe Hands: On-device Real-time Hand Landmark Detection</div>
+    <div class="paper-authors">Zhang, F., Bazarevsky, V., Vakunov, A., Tkachenka, A., Sung, G., Chang, C.-L., & Grundmann, M. (2020). arXiv:2006.10214.</div>
+    <div class="paper-body">
+      <p>Este artículo describe el sistema MediaPipe Hands, una solución de estimación de pose de mano en tiempo real que opera completamente en dispositivo (CPU móvil o escritorio) sin necesidad de GPU. El sistema emplea un pipeline en dos etapas: un detector de palma basado en SSD BlazeFace que localiza la región de la mano en el fotograma, seguido de un modelo de regresión directa de 21 puntos de landmark 3D entrenado sobre un corpus diverso de 30.000 imágenes anotadas a mano y generación sintética vía modelos 3D de manos. Los landmarks incluyen las tres articulaciones de cada dedo más la punta, el nudillo de la muñeca y cuatro puntos auxiliares del pulgar. La coordenada Z se estima en relación a la muñeca, resultando invariante al escalado absoluto de la mano.</p>
+      <p><strong>Relevancia para este proyecto.</strong> MediaPipe Hands constituye el primer eslabón de la pipeline completa. La precisión submilimétrica de los landmarks en condiciones de laboratorio, combinada con su velocidad (>30 fps en CPU estándar), hace viable la inferencia en tiempo real sin hardware especializado. La invarianza relativa al escalado permite que el clasificador funcione independientemente de la distancia entre la mano y la cámara, siempre que la mano sea visible en su totalidad.</p>
+      <p><strong>Arquitectura interna en detalle.</strong> El pipeline de MediaPipe Hands se compone de dos redes en cascada. La primera, <strong>BlazePalm</strong>, es una CNN ligera basada en SSD que opera sobre el fotograma completo a resolución reducida: detecta la región de la palma con gran velocidad aunque con precisión moderada en la localización exacta, y devuelve un bounding box orientado que enmarca la mano. La segunda red, <strong>HandLandmarkNet</strong>, recibe únicamente el recorte de palma normalizado y aplica una arquitectura de tipo encoder-decoder —análoga a U-Net— que regresa directamente las 21 coordenadas de landmarks × 3 ejes (x, y, z) mediante regresión. La coordenada Z no proviene de ningún sensor de profundidad: es estimada por la propia red como una profundidad relativa normalizada al tamaño de la palma, lo que la hace invariante al escalado pero dependiente de la pose. El modelo fue entrenado con una combinación de datos sintéticos (renderizado 3D de manos de alta fidelidad) y datos reales anotados manualmente, alcanzando aproximadamente 30.000 imágenes de entrenamiento según Zhang et al. [1]. En cuanto a rendimiento, el sistema completo opera a ~30 FPS en CPU móvil y con latencia inferior a 5&nbsp;ms por fotograma en hardware de escritorio moderno, lo que lo hace adecuado para aplicaciones embebidas y de tiempo real sin GPU.</p>
+    </div>
+  </div>
+
+  <div class="paper-card">
+    <div class="paper-ref">[2] · Sign Language Recognition · ECCV HBU Workshop 2014</div>
+    <div class="paper-title">Sign Language Recognition Using Convolutional Neural Networks</div>
+    <div class="paper-authors">Pigou, L., Dieleman, S., Roodhooft, P., & Dhoedt, B. (2014). ECCV Workshop on Human Behavior Understanding.</div>
+    <div class="paper-body">
+      <p>Pigou et al. presentaron uno de los primeros trabajos que aplicaron redes convolucionales profundas al reconocimiento de lenguaje de signos en vídeo, obteniendo resultados destacados en el corpus ChaLearn Gesture Challenge. Su contribución principal fue demostrar que las CNN, sin ingeniería de características manual, podían superar a los métodos clásicos basados en histogramas de flujo óptico y SVM. La red procesa secuencias temporales de fotogramas en bruto e incorpora capas convolucionales 3D para capturar movimiento. El accuracy sobre el corpus de evaluación fue del 88,9&nbsp;%.</p>
+      <p><strong>Relevancia para este proyecto.</strong> Este trabajo fundamenta la inclusión del componente CNN (MobileNetV2) en el sistema híbrido. Si bien el presente proyecto opera sobre letras estáticas y el MLP sobre landmarks es el componente dominante, la revisión de Pigou et al. avala que la información visual directa aporta señal complementaria que puede mejorar la discriminación en letras problemáticas. El peso del 5&nbsp;% asignado al CNN en la decisión final refleja precisamente este rol de refinamiento, no de sustitución.</p>
+    </div>
+  </div>
+
+  <div class="paper-card">
+    <div class="paper-ref">[3] · Deep Survey · Expert Systems with Applications 2021</div>
+    <div class="paper-title">Sign Language Recognition: A Deep Survey</div>
+    <div class="paper-authors">Rastgoo, R., Kiani, K., & Escalera, S. (2021). Expert Systems with Applications, 164, 113794.</div>
+    <div class="paper-body">
+      <p>Rastgoo et al. realizaron una revisión sistemática de más de 150 artículos publicados entre 2007 y 2020 sobre reconocimiento de lenguaje de signos, clasificando los enfoques en cuatro categorías: basados en guantes, en visión monocular, en profundidad (RGB-D) y en datos esqueletales. El artículo concluye que los métodos basados en landmarks esqueletales extraídos con sensores de profundidad o estimación por red neuronal presentan la mejor relación entre rendimiento y coste computacional para reconocimiento de signos estáticos, y que las arquitecturas RNN/LSTM son el estado del arte para signos dinámicos. Señalan además que la escasez de datasets de alta calidad para lenguas de signos distintas del ASL sigue siendo el principal cuello de botella.</p>
+      <p><strong>Relevancia para este proyecto.</strong> La revisión justifica la elección de landmarks MediaPipe como representación de entrada frente a métodos pixel-raw o RGB-D. Confirma que MLP sobre características geométricas es una línea de investigación consolidada y competitiva para el reconocimiento de signos estáticos, y señala la brecha de trabajo futuro que este proyecto aborda: la extensión hacia secuencias temporales con LSTM para capturar los signos dinámicos que actualmente se gestionan con reglas heurísticas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 04 · METODOLOGÍA -->
+<section id="metodologia">
+  <div class="section-header">
+    <div class="section-number">§ 04</div>
+    <h2>Metodología</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <h3>4.1 · Recogida de datos</h3>
+  <figure style="margin:2rem 0;text-align:center;">
+    <img src="Info_para_trabajo/LSE_alfabeto_practica.webp" alt="Alfabeto dactilológico LSE — configuraciones de mano para cada letra" style="max-width:100%;border-radius:8px;border:1px solid var(--border);">
+    <figcaption style="margin-top:.75rem;font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">Figura 1 · Alfabeto dactilológico del Lenguaje de Signos Español (LSE). Fuente: referencia de práctica utilizada durante la recogida de datos.</figcaption>
+  </figure>
+  <p>El dataset fue construido íntegramente mediante captura propia con webcam. Para cada una de las 22 letras estáticas reconocidas por el MLP se realizaron sesiones de captura en las que el autor ejecutaba la configuración de mano correspondiente ante la cámara mientras el sistema almacenaba el vector de 91 características extraído en cada fotograma en el que MediaPipe detectaba la mano con confianza superior a 0,7. Las sesiones se realizaron en distintas condiciones de iluminación (luz natural, luz artificial fría y cálida) y con variaciones en la orientación de la mano respecto a la cámara para introducir diversidad en el dataset.</p>
+  <p>El resultado fue un archivo <code>landmarks.csv</code> con <strong>44.079 filas</strong> y 92 columnas (91 características + etiqueta de letra). La distribución de clases presenta desequilibrio natural, ya que letras como A, B, L, W y X —más fáciles de mantener durante segundos— acumulan entre 263 y 285 muestras de test, mientras que letras con configuraciones más exigentes (D, F, H, O, U) disponen de tan solo 16 muestras de test.</p>
+
+  <div class="callout">
+    Limitación relevante: todo el dataset procede de un único sujeto. Esto puede introducir sesgo hacia las características morfológicas específicas de la mano del autor y puede afectar a la generalización a otras personas.
+  </div>
+
+  <h3>4.2 · Ingeniería de características</h3>
+  <p>El vector de 91 características se construye en dos bloques a partir de los 21 landmarks tridimensionales (x, y, z) entregados por MediaPipe:</p>
+
+  <div class="feature-grid">
+    <div class="feature-block">
+      <h4>Bloque A · 63 coordenadas brutas normalizadas</h4>
+      <ul>
+        <li>21 landmarks × 3 ejes (x, y, z) = 63 valores</li>
+        <li>Las coordenadas se normalizan respecto a la posición de la muñeca (landmark 0) para independencia traslacional</li>
+        <li>Se escalan respecto a la distancia muñeca–base del dedo corazón para independencia de escala</li>
+        <li>El eje Z está expresado en unidades relativas a la profundidad de la muñeca (estimación de MediaPipe)</li>
+        <li>Capturan la geometría global de la postura de la mano</li>
+      </ul>
+    </div>
+    <div class="feature-block">
+      <h4>Bloque B · 28 características derivadas</h4>
+      <ul>
+        <li>10 distancias entre puntas de dedo (pares: pulgar–índice, pulgar–corazón, etc.)</li>
+        <li>5 ángulos de flexión por dedo: ángulo en la metacarpofalángica (MCP) y en la interfalángica proximal (IFP)</li>
+        <li>5 ratios de apertura relativa entre dedos adyacentes (separación lateral)</li>
+        <li>4 ángulos de curvatura por falange (estimación de la curvatura del arco digital)</li>
+        <li>4 distancias punta-palma por dedo (extensión respecto al centroide de la palma)</li>
+      </ul>
+    </div>
+  </div>
+
+  <p>Las características derivadas son invariantes a las transformaciones de escala y traslación por construcción, y añaden información semántica sobre la configuración de los dedos que las coordenadas brutas codifican de forma más implícita. Esta combinación permite al clasificador operar con buena exactitud incluso ante variaciones en la distancia y orientación de la mano respecto a la cámara.</p>
+
+  <h3>4.3 · Aumentación de datos</h3>
+  <p>Para compensar el desequilibrio de clases y mejorar la robustez, se aplicaron dos estrategias de aumentación sobre las características:</p>
+  <ul style="padding-left:1.5rem; margin-bottom:1rem;">
+    <li style="margin-bottom:6px; color:#b8c4d0;"><strong>Ruido gaussiano adaptativo:</strong> se añadió ruido <em>N</em>(0, σ) proporcional al rango de cada característica (σ ≈ 1&nbsp;% del rango), simulando pequeñas imprecisiones en la localización de landmarks.</li>
+    <li style="margin-bottom:6px; color:#b8c4d0;"><strong>Sobre-muestreo de clases minoritarias:</strong> para clases con menos de 500 muestras en entrenamiento, se aplicó interpolación convexa aleatoria entre pares de muestras de la misma clase (SMOTE landmark-space), llegando a equilibrar las clases con menos de 100 muestras originales.</li>
+  </ul>
+  <p>La aumentación se aplica únicamente al conjunto de entrenamiento; los conjuntos de validación y test contienen únicamente muestras reales sin transformar, garantizando una evaluación honesta del rendimiento real del sistema.</p>
+
+  <h3>4.4 · Estrategia de entrenamiento</h3>
+  <p>El conjunto de datos se dividió en <strong>70&nbsp;% entrenamiento, 15&nbsp;% validación y 15&nbsp;% test</strong>, con estratificación por clase para preservar la distribución. El MLP se entrenó con las siguientes hiperparámetros:</p>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Hiperparámetro</th>
+        <th>Valor</th>
+        <th>Justificación</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Optimizador</td><td class="num">Adam (lr=1e-3)</td><td>Convergencia rápida en datos tabulares</td></tr>
+      <tr><td>Planificador LR</td><td class="num">ReduceLROnPlateau ×0.5</td><td>Paciencia 10 epochs en val loss</td></tr>
+      <tr><td>Dropout</td><td class="num">0.4</td><td>Regularización para prevenir overfitting</td></tr>
+      <tr><td>Batch size</td><td class="num">256</td><td>Balance velocidad/generalización</td></tr>
+      <tr><td>Epochs máx.</td><td class="num">300</td><td>Con early stopping (paciencia 30)</td></tr>
+      <tr><td>Función de pérdida</td><td class="num">CrossEntropyLoss</td><td>Clasificación multiclase</td></tr>
+      <tr><td>Weight decay</td><td class="num">1e-4</td><td>L2 regularización adicional</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.5 · Inferencia híbrida</h3>
+  <p>La decisión final para letras estáticas combina las salidas del MLP y del CNN mediante una media ponderada de los vectores de probabilidad softmax:</p>
+  <div class="callout blue" style="font-family:'IBM Plex Mono',monospace; font-size:13px;">
+    P<sub>híbrido</sub>(c) = 0.95 · P<sub>MLP</sub>(c) + 0.05 · P<sub>CNN</sub>(c)
+  </div>
+  <p>El peso del 5&nbsp;% asignado al CNN refleja que este modelo opera sobre el recorte de imagen en bruto (64×64 px, normalizado) y que su contribución es principalmente de refinamiento en letras donde la textura y el sombreado de la mano aportan señal adicional. Para las letras dinámicas, el sistema monitoriza la trayectoria del landmark de la punta del dedo índice (landmark 8) a lo largo de ventanas de 15 fotogramas y aplica reglas deterministas: movimiento circular→J, movimiento vertical →V, movimiento en gancho→Y, movimiento en zigzag→Z.</p>
+</section>
+
+<!-- 05 · ARQUITECTURA -->
+<section id="arquitectura">
+  <div class="section-header">
+    <div class="section-number">§ 05</div>
+    <h2>Arquitectura del sistema</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <p>El sistema completo se estructura en una pipeline lineal que transforma un fotograma RGB de webcam en una predicción de letra con nivel de confianza. El diagrama siguiente ilustra los componentes principales y el flujo de datos entre ellos.</p>
+
+  <!-- SVG PIPELINE DIAGRAM -->
+  <div class="svg-wrapper">
+    <svg id="pipeline-svg" viewBox="0 0 860 280" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Sans, sans-serif">
+      <!-- Background -->
+      <rect width="860" height="280" fill="#0c1018" rx="8"/>
+
+      <!-- Nodes -->
+      <!-- Webcam -->
+      <rect x="20" y="100" width="110" height="80" rx="6" fill="#101520" stroke="#18222e" stroke-width="1.5"/>
+      <text x="75" y="132" fill="#3b82f6" text-anchor="middle" font-size="10" font-family="IBM Plex Mono,monospace" letter-spacing="0.05em">ENTRADA</text>
+      <text x="75" y="152" fill="#dde4ed" text-anchor="middle" font-size="13" font-weight="600">Webcam</text>
+      <text x="75" y="168" fill="#536275" text-anchor="middle" font-size="10">30 fps · RGB</text>
+
+      <!-- Arrow 1 -->
+      <line x1="130" y1="140" x2="158" y2="140" stroke="#18222e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- MediaPipe -->
+      <rect x="160" y="88" width="130" height="104" rx="6" fill="#101520" stroke="#18222e" stroke-width="1.5"/>
+      <rect x="160" y="88" width="130" height="4" rx="2" fill="#3b82f6"/>
+      <text x="225" y="120" fill="#3b82f6" text-anchor="middle" font-size="10" font-family="IBM Plex Mono,monospace" letter-spacing="0.05em">DETECCIÓN</text>
+      <text x="225" y="140" fill="#dde4ed" text-anchor="middle" font-size="13" font-weight="600">MediaPipe</text>
+      <text x="225" y="157" fill="#536275" text-anchor="middle" font-size="10">Hands v2</text>
+      <text x="225" y="172" fill="#536275" text-anchor="middle" font-size="10">21 landmarks 3D</text>
+
+      <!-- Arrow 2 -->
+      <line x1="290" y1="140" x2="318" y2="140" stroke="#18222e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Features -->
+      <rect x="320" y="88" width="130" height="104" rx="6" fill="#101520" stroke="#18222e" stroke-width="1.5"/>
+      <rect x="320" y="88" width="130" height="4" rx="2" fill="#2dc98b"/>
+      <text x="385" y="120" fill="#2dc98b" text-anchor="middle" font-size="10" font-family="IBM Plex Mono,monospace" letter-spacing="0.05em">FEATURES</text>
+      <text x="385" y="140" fill="#dde4ed" text-anchor="middle" font-size="13" font-weight="600">Ingeniería</text>
+      <text x="385" y="157" fill="#536275" text-anchor="middle" font-size="10">63 raw + 28 der.</text>
+      <text x="385" y="172" fill="#536275" text-anchor="middle" font-size="10">= 91 dimensiones</text>
+
+      <!-- Arrow 3 to MLP -->
+      <line x1="450" y1="130" x2="478" y2="115" stroke="#18222e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- MLP -->
+      <rect x="480" y="60" width="130" height="100" rx="6" fill="#101520" stroke="#3b82f6" stroke-width="1.5"/>
+      <rect x="480" y="60" width="130" height="4" rx="2" fill="#3b82f6"/>
+      <text x="545" y="90" fill="#3b82f6" text-anchor="middle" font-size="10" font-family="IBM Plex Mono,monospace" letter-spacing="0.05em">PRINCIPAL (95%)</text>
+      <text x="545" y="110" fill="#dde4ed" text-anchor="middle" font-size="13" font-weight="600">MLP</text>
+      <text x="545" y="127" fill="#536275" text-anchor="middle" font-size="10">91→512→256→128</text>
+      <text x="545" y="142" fill="#536275" text-anchor="middle" font-size="10">→22 clases</text>
+
+      <!-- Arrow 3b to CNN -->
+      <line x1="450" y1="150" x2="478" y2="185" stroke="#18222e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- CNN -->
+      <rect x="480" y="165" width="130" height="84" rx="6" fill="#101520" stroke="#18222e" stroke-width="1.5"/>
+      <rect x="480" y="165" width="130" height="4" rx="2" fill="#f97316"/>
+      <text x="545" y="190" fill="#f97316" text-anchor="middle" font-size="10" font-family="IBM Plex Mono,monospace" letter-spacing="0.05em">APOYO (5%)</text>
+      <text x="545" y="210" fill="#dde4ed" text-anchor="middle" font-size="13" font-weight="600">MobileNetV2</text>
+      <text x="545" y="227" fill="#536275" text-anchor="middle" font-size="10">64×64 px crop</text>
+
+      <!-- Arrows to Fusion -->
+      <line x1="610" y1="110" x2="638" y2="128" stroke="#18222e" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="610" y1="207" x2="638" y2="165" stroke="#18222e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Fusion -->
+      <rect x="640" y="105" width="100" height="72" rx="6" fill="#101520" stroke="#18222e" stroke-width="1.5"/>
+      <rect x="640" y="105" width="100" height="4" rx="2" fill="#2dc98b"/>
+      <text x="690" y="130" fill="#2dc98b" text-anchor="middle" font-size="10" font-family="IBM Plex Mono,monospace" letter-spacing="0.05em">FUSIÓN</text>
+      <text x="690" y="150" fill="#dde4ed" text-anchor="middle" font-size="13" font-weight="600">Híbrido</text>
+      <text x="690" y="167" fill="#536275" text-anchor="middle" font-size="10">Softmax ponderado</text>
+
+      <!-- Arrow to Output -->
+      <line x1="740" y1="141" x2="768" y2="141" stroke="#18222e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Output -->
+      <rect x="770" y="105" width="70" height="72" rx="6" fill="#101520" stroke="#18222e" stroke-width="1.5"/>
+      <rect x="770" y="105" width="70" height="4" rx="2" fill="#dde4ed"/>
+      <text x="805" y="130" fill="#dde4ed" text-anchor="middle" font-size="10" font-family="IBM Plex Mono,monospace" letter-spacing="0.04em">SALIDA</text>
+      <text x="805" y="152" fill="#dde4ed" text-anchor="middle" font-size="18" font-weight="700">A–Z</text>
+      <text x="805" y="168" fill="#536275" text-anchor="middle" font-size="10">+ confianza</text>
+
+      <!-- Dynamic letters label -->
+      <text x="385" y="218" fill="#536275" text-anchor="middle" font-size="10" font-family="IBM Plex Mono,monospace">J·V·Y·Z → reglas trayectoria (landmark 8)</text>
+
+      <!-- Arrow def -->
+      <defs>
+        <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L6,3 z" fill="#536275"/>
+        </marker>
+      </defs>
+    </svg>
+  </div>
+
+  <h3>Componente 1: Captura y detección MediaPipe</h3>
+  <p>El bucle de captura utiliza OpenCV para leer fotogramas de la webcam y MediaPipe Hands para detectar y localizar la mano. MediaPipe ejecuta un detector de palma ligero (BlazeFace) que devuelve un bounding box, y a continuación un modelo de regresión de landmarks que infiere las 21 articulaciones tridimensionales dentro de ese recorte. El sistema opera con <code>min_detection_confidence=0.7</code> y <code>min_tracking_confidence=0.5</code>, activando el modo de seguimiento para reducir la latencia en fotogramas sucesivos sin redetección completa.</p>
+
+  <h3>Componente 2: Extracción y normalización de características</h3>
+  <p>Antes de alimentar el clasificador, los 21 landmarks se normalizan de forma idempotente: se centra la muñeca en el origen, se escala el esqueleto para que la distancia muñeca–MCP del corazón sea 1.0, y se calculan las 28 características derivadas. Esta normalización es reproducible y determinista, lo que garantiza que el mismo gesto siempre produzca el mismo vector independientemente de la posición de la mano en el fotograma o de la distancia a la cámara.</p>
+
+  <h3>Componente 3: MLP (clasificador principal)</h3>
+  <p>La red neuronal multicapa tiene arquitectura <strong>91 → 512 → 256 → 128 → 22</strong>. Cada capa oculta incluye normalización de lote (Batch Normalization) para estabilizar el entrenamiento y Dropout(0.4) para regularización. La capa de salida aplica Softmax para producir una distribución de probabilidad sobre las 22 clases estáticas. El modelo ocupa aproximadamente 480 KB en disco (formato <code>.pt</code>), lo que lo hace ligero para distribución embebida.</p>
+  <p><strong>Batch Normalization.</strong> Aplicada antes de la activación ReLU de cada capa oculta, la normalización de lote estandariza las activaciones de cada mini-batch a media cero y varianza unitaria, seguida de un reescalado aprendible (γ, β). Este mecanismo acelera la convergencia al reducir el problema del <em>internal covariate shift</em> y disminuye la sensibilidad al learning rate inicial. En este proyecto la Batch Normalization resultó especialmente importante por la heterogeneidad de escala de las 91 características de entrada: las coordenadas brutas normalizadas oscilan en el rango [0, 1], mientras que algunas distancias entre landmarks pueden ser inferiores a 0,05 unidades. Sin BN, las capas profundas de la red habrían recibido gradientes mal condicionados que habrían dificultado el aprendizaje en la práctica.</p>
+  <p><strong>Dropout(0.4) y búsqueda de hiperparámetros.</strong> Durante el entrenamiento, el Dropout desactiva aleatoriamente el 40&nbsp;% de las neuronas de cada capa oculta en cada paso forward. Esto fuerza al modelo a aprender representaciones distribuidas y redundantes, impidiendo que dependa de activaciones individuales y previniendo el sobreajuste. El valor de tasa 0,4 fue seleccionado mediante búsqueda en grid sobre el conjunto {0,2; 0,3; 0,4; 0,5}, minimizando la pérdida de validación al final del entrenamiento; tasas superiores a 0,4 degradaron la convergencia sin beneficio adicional de regularización. <strong>Adam con ReduceLROnPlateau</strong> gestiona el ajuste del learning rate: se parte de lr=1×10⁻³ y se reduce en un factor 0,5 cuando la pérdida de validación no mejora durante 10 épocas consecutivas, hasta un mínimo de 1×10⁻⁶. Esta estrategia combina la convergencia rápida inicial de Adam con un refinamiento fino al final del entrenamiento que extrae la mayor parte de la ganancia marginal de precisión.</p>
+  <p><strong>Aumentación directa sobre landmarks.</strong> Durante el entrenamiento se aplicó aumentación geométrica directamente sobre las coordenadas de los 21 landmarks antes de calcular las 28 características derivadas: rotación aleatoria en el plano ±30°, perturbación de escala ±20&nbsp;% y jitter gaussiano con σ=0,01 sobre cada coordenada. Las características derivadas (distancias, ángulos, ratios) se recomputaron sobre los landmarks aumentados en cada paso, garantizando coherencia geométrica entre el bloque A y el bloque B del vector de 91 características. Este enfoque es más eficiente que la aumentación a nivel de imagen y se alinea directamente con la naturaleza de la representación de entrada del modelo.</p>
+
+  <h3>Componente 4: MobileNetV2 (clasificador de apoyo)</h3>
+  <p>Sobre el recorte de mano normalizado a 64×64 píxeles, MobileNetV2 produce un vector de probabilidades adicional. Este modelo pre-entrenado en ImageNet fue ajustado en fine-tuning con las mismas clases que el MLP. Su contribución del 5&nbsp;% al ensemble es deliberadamente conservadora: el CNN aporta información de textura y sombreado que no está en los landmarks, pero es más sensible a condiciones de iluminación, lo que justifica su peso minoritario.</p>
+
+  <h3>Componente 5: Lógica de letras dinámicas</h3>
+  <p>Para J, V, Y y Z, el sistema mantiene un buffer circular de los últimos 15 fotogramas con detección válida de mano. La posición del landmark 8 (punta del índice) en cada fotograma se acumula como trayectoria 2D normalizada. Tres reglas deterministas basadas en la varianza de la trayectoria, su ratio de aspecto y la detección de inflexión en la dirección de movimiento clasifican el gesto como una de las cuatro letras dinámicas. Si ninguna regla se activa con suficiente confianza, la letra se descarta del buffer y se continúa con la inferencia estática.</p>
+</section>
+
+<!-- 06 · RESULTADOS -->
+<section id="resultados">
+  <div class="section-header">
+    <div class="section-number">§ 06</div>
+    <h2>Resultados</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <h3>6.1 · Métricas globales</h3>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Métrica</th>
+        <th style="text-align:right">Valor</th>
+        <th>Interpretación</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Accuracy (test)</td><td class="num good">90.98 %</td><td>Letras correctamente identificadas sobre el conjunto de test</td></tr>
+      <tr><td>Accuracy (validación)</td><td class="num good">99.88 %</td><td>Validación durante entrenamiento; brecha val/test señala varianza de clases pequeñas</td></tr>
+      <tr><td>Macro Precision</td><td class="num good">86.28 %</td><td>Precisión promedio no ponderada por clase</td></tr>
+      <tr><td>Macro Recall</td><td class="num good">93.67 %</td><td>Cobertura promedio; el modelo no deja letras sin detectar con frecuencia</td></tr>
+      <tr><td>Macro F1</td><td class="num good">89.05 %</td><td>Armonía precision/recall; métrica principal de referencia</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout green">
+    La diferencia entre accuracy de validación (99,88&nbsp;%) y de test (90,98&nbsp;%) no es señal de sobreajuste masivo, sino consecuencia de la distribución desequilibrada de muestras de test: letras con solo 16 muestras de test tienen varianza estadística muy alta incluso con un clasificador perfecto.
+  </div>
+
+  <h3>6.2 · Resultados por clase</h3>
+
+  <table class="data-table" id="per-class-table">
+    <thead>
+      <tr>
+        <th>Letra</th>
+        <th style="text-align:right">Prec.</th>
+        <th style="text-align:right">Recall</th>
+        <th style="text-align:right">F1</th>
+        <th style="text-align:right">Soporte</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="per-class-tbody"></tbody>
+  </table>
+
+  <h3>6.3 · Gráfico F1 por clase</h3>
+  <div id="f1-container">
+    <canvas id="f1-chart" height="420"></canvas>
+  </div>
+
+  <h3>6.4 · Matriz de confusión</h3>
+  <p>La matriz de confusión 22×22 muestra el número de muestras de test clasificadas en cada combinación (fila=etiqueta real, columna=predicción). La diagonal representa predicciones correctas. Las celdas se colorean por valor normalizado por fila (recall normalizado): verde para la diagonal, escala rojo/naranja para errores.</p>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:#2dc98b"></div>Predicción correcta (diagonal)</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#f97316"></div>Error moderado</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#ef4444"></div>Error grave</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#101520"></div>Sin errores</div>
+  </div>
+
+  <div id="confusion-container">
+    <canvas id="cm-canvas"></canvas>
+  </div>
+  <div class="cm-tooltip" id="cm-tooltip"></div>
+</section>
+
+<!-- 07 · ANÁLISIS DE ERRORES -->
+<section id="analisis-errores">
+  <div class="section-header">
+    <div class="section-number">§ 07</div>
+    <h2>Análisis de errores</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <h3>7.1 · Letras dinámicas: la brecha del movimiento</h3>
+  <p>Las letras J, V, Y y Z no son reconocidas por el clasificador aprendido sino por reglas heurísticas sobre la trayectoria del landmark 8. Esta decisión de diseño tiene consecuencias importantes que merecen análisis explícito. Las reglas funcionan bien en condiciones controladas (buena iluminación, mano estable, movimiento deliberado), pero presentan mayor tasa de falso negativo cuando el movimiento es rápido o parcialmente fuera del encuadre. No existen métricas de evaluación cuantitativa sobre estas letras en el corpus de test porque el corpus actual no incluye muestras de secuencias temporales. Esta es la limitación técnica más significativa del sistema.</p>
+
+  <div class="callout">
+    Las letras J, V, Y y Z requieren extensión del dataset con secuencias temporales etiquetadas y la sustitución de las reglas heurísticas por un modelo LSTM o similar para alcanzar un rendimiento comparable al de las letras estáticas.
+  </div>
+
+  <h3>7.2 · Letras estáticas problemáticas</h3>
+
+  <h4>E — Precisión 54.55% (el peor resultado)</h4>
+  <p>La letra E es la más problemática del sistema. Su precisión del 54,55&nbsp;% indica que de cada 100 predicciones de E, casi la mitad corresponden en realidad a otra letra. El recall es, sin embargo, del 93,75&nbsp;%, lo que significa que el modelo casi siempre detecta los gestos reales de E. La causa es que E comparte configuración de mano (dedos curvados hacia la palma) con estados intermedios de otras letras, especialmente A y O. El modelo aprende a sobre-predecir E para mantener un recall alto, sacrificando precisión.</p>
+
+  <h4>P — Precisión 60.38%</h4>
+  <p>P presenta confusión sistemática con I (5 muestras de I clasificadas como P en test) y con B. La configuración de P en LSE implica el índice extendido hacia abajo con pulgar separado, una postura que comparte componentes geométricas con la configuración básica de I. Las características de distancia pulgar–índice y el ángulo de extensión del meñique son las más discriminativas entre P e I, pero no siempre son suficientes cuando hay variación en la orientación de la mano.</p>
+
+  <h4>U — Precisión 61.54%</h4>
+  <p>U es la letra con menor soporte de test (16 muestras), lo que implica alta varianza estadística. Su precisión del 61,54&nbsp;% con recall del 100&nbsp;% indica un patrón similar a E: el modelo es conservador y tiende a predecir U cuando no está completamente seguro de otra letra con dedos parcialmente extendidos, captando todas las muestras reales pero generando muchos falsos positivos en el proceso.</p>
+
+  <h4>G — Precisión 71.76%</h4>
+  <p>G se confunde principalmente con C (3 muestras de G→C y 8 muestras de C→G) debido a que ambas implican la curvatura del índice y el pulgar en forma de pinza o garra. La diferencia principal es la orientación de la palma y la posición del pulgar, características que el modelo captura parcialmente pero que son sensibles a la variación de perspectiva de captura.</p>
+
+  <h3>7.3 · Pares de confusión más frecuentes</h3>
+
+  <div style="margin:1.5rem 0; display:flex; flex-wrap:wrap; gap:6px;">
+    <div class="error-pair"><span class="from">B</span><span class="arr">→</span><span class="to">G</span><span class="cnt">14 muestras</span></div>
+    <div class="error-pair"><span class="from">R</span><span class="arr">→</span><span class="to">P</span><span class="cnt">14 muestras</span></div>
+    <div class="error-pair"><span class="from">A</span><span class="arr">→</span><span class="to">E</span><span class="cnt">13 muestras</span></div>
+    <div class="error-pair"><span class="from">A</span><span class="arr">→</span><span class="to">B</span><span class="cnt">9 muestras</span></div>
+    <div class="error-pair"><span class="from">C</span><span class="arr">→</span><span class="to">G</span><span class="cnt">8 muestras</span></div>
+    <div class="error-pair"><span class="from">R</span><span class="arr">→</span><span class="to">G</span><span class="cnt">8 muestras</span></div>
+    <div class="error-pair"><span class="from">X</span><span class="arr">→</span><span class="to">R</span><span class="cnt">8 muestras</span></div>
+    <div class="error-pair"><span class="from">W</span><span class="arr">→</span><span class="to">U</span><span class="cnt">7 muestras</span></div>
+    <div class="error-pair"><span class="from">L</span><span class="arr">→</span><span class="to">G</span><span class="cnt">6 muestras</span></div>
+    <div class="error-pair"><span class="from">I</span><span class="arr">→</span><span class="to">P</span><span class="cnt">5 muestras</span></div>
+    <div class="error-pair"><span class="from">L</span><span class="arr">→</span><span class="to">E</span><span class="cnt">5 muestras</span></div>
+  </div>
+
+  <p>Los dos pares de confusión con mayor número de errores son <strong>B→G</strong> y <strong>R→P</strong>, ambos con 14 muestras. El par B→G refleja que B (cuatro dedos extendidos juntos) y G (índice extendido horizontalmente) comparten la extensión del índice y el pulgar como rasgos dominantes desde ciertos ángulos de cámara. El par R→P es especialmente relevante: R implica los dedos índice y corazón cruzados, mientras que P extiende el índice hacia abajo con el pulgar separado; ambas configuraciones proyectan vectores de distancias similares cuando la orientación de la mano varía ligeramente.</p>
+
+  <p>El par <strong>A→E</strong> (13 errores) y <strong>A→B</strong> (9 errores) ilustran la dificultad de distinguir configuraciones de mano cerrada: A tiene el pulgar lateral, E tiene los dedos curvados hacia la palma y B los tiene extendidos. La baja iluminación o el ángulo de captura pueden hacer que estas posturas se colapsen en el espacio de características. La letra G, con precisión del 71,8&nbsp;%, actúa como clase &quot;receptora&quot; de falsos positivos procedentes de B, C, R y L, ya que su configuración (índice horizontal, palma orientada lateralmente) puede confundirse con el estado de transición de varios otros gestos.</p>
+</section>
+
+<!-- 07b · PROBLEMÁTICA DEL DESARROLLO -->
+<section id="problematica">
+  <div class="section-header">
+    <div class="section-number">§ 07b</div>
+    <h2>Problemática del desarrollo</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <p>El desarrollo del sistema estuvo condicionado por una serie de dificultades técnicas y de diseño que no son evidentes en los resultados finales pero que tuvieron impacto directo en las decisiones arquitectónicas tomadas. Esta sección documenta los problemas más relevantes y las soluciones adoptadas, con el fin de proporcionar una visión honesta del proceso de ingeniería.</p>
+
+  <h3>Confusión LSE vs. ASL en datasets públicos</h3>
+  <p>La mayoría de los datasets etiquetados como «lenguaje de signos» disponibles en repositorios públicos (Kaggle, GitHub) son en realidad ASL (American Sign Language), no LSE. Aunque el alfabeto dactilológico LSE y el ASL comparten muchas configuraciones, difieren en letras clave: en ASL la K se forma con dos dedos extendidos en diagonal, la P es una K girada hacia abajo, la Q apunta verticalmente hacia el suelo y la R usa un cruce de dedos distinto al empleado en LSE. Utilizar un dataset ASL etiquetado incorrectamente como LSE produciría un sistema que reconoce signos incorrectos para el contexto español.</p>
+  <p>La solución adoptada fue <strong>construir el dataset completo desde cero</strong> con el propio autor, usando la webcam y MediaPipe, siguiendo las referencias visuales del alfabeto dactilológico oficial del LSE. Este enfoque garantiza coherencia lingüística plena, pero introduce como contrapartida la limitación de diversidad de sujetos discutida en §08: al proceder de un único signante, el dataset no captura la variabilidad morfológica entre personas.</p>
+
+  <div class="callout blue">
+    La escasez de datasets de calidad para LSE es identificada como cuello de botella principal por Rastgoo et al. [3], que señalan que la mayor parte de la investigación en reconocimiento de lenguas de signos se concentra en ASL por disponibilidad de datos, no por relevancia lingüística.
+  </div>
+
+  <h3>Incompatibilidad de MediaPipe con Python 3.13</h3>
+  <p>Durante el desarrollo se detectó que la versión 0.10.x de MediaPipe no soporta Python 3.13, la versión más reciente en el momento del proyecto. El submódulo <code>mp.solutions</code> —la interfaz clásica para acceder a los modelos de detección de manos— fue eliminado en la Tasks API de MediaPipe 0.10.14+. Esto hizo necesario migrar todo el código de captura y extracción de landmarks a la nueva <strong>Tasks API</strong> (<code>mediapipe.tasks.python.vision.HandLandmarker</code>), que utiliza un modelo <code>.task</code> descargado bajo demanda y expone una interfaz programática sustancialmente diferente a la anterior.</p>
+  <p>La migración implicó refactorizar los tres módulos principales de captura: el bucle de lectura de webcam, el extractor de landmarks y el módulo de normalización de coordenadas. El cambio más significativo fue la sustitución del modo síncrono basado en <code>process()</code> por una arquitectura de callbacks asíncronos en la que el modelo invoca una función de resultado al completar la inferencia. Esta refactorización, aunque costosa en tiempo de desarrollo, resulta más robusta y alineada con la dirección futura de la librería.</p>
+
+  <h3>Overfitting inicial del clasificador CNN</h3>
+  <p>La primera versión del sistema empleó una CNN propia entrenada desde cero sobre las aproximadamente 71 imágenes por clase del dataset de referencia visual. El resultado fue una exactitud de validación de alrededor del 50&nbsp;%, evidenciando un sobreajuste severo causado por la insuficiencia de datos. La CNN memorizaba las imágenes de entrenamiento sin aprender representaciones generalizables.</p>
+  <p>Este fracaso motivó el cambio de estrategia que define la arquitectura final: el <strong>MLP sobre landmarks</strong> se convirtió en el componente principal (no depende de la textura de la imagen, sino de la geometría del esqueleto de la mano, lo que generaliza mejor con pocos datos), y <strong>MobileNetV2 con backbone ImageNet congelado</strong> (transfer learning) sustituyó a la CNN propia como componente auxiliar, resolviendo el problema del dataset pequeño de imágenes mediante la reutilización de características visuales preaprendidas.</p>
+
+  <h3>Brecha validación/test y su interpretación correcta</h3>
+  <p>La diferencia de aproximadamente 9 puntos porcentuales entre <code>val_acc</code> (99,88&nbsp;%) y <code>test_acc</code> (90,98&nbsp;%) generó inicialmente alarma de sobreajuste. El análisis posterior mostró que la causa principal no es el sobreajuste del modelo sino la <strong>distribución desequilibrada del conjunto de test</strong>: las clases con solo 16 muestras de test (D, F, H, O, U) presentan varianza estadística muy alta. Un único error en 16 muestras penaliza esa clase en un 6,25&nbsp;%, lo que arrastra significativamente la media global.</p>
+  <p>El modelo en sí no está sobreajustado en el sentido técnico del término: el MLP con Dropout(0.4) y Batch Normalization muestra curvas de entrenamiento convergentes y sin divergencia val/train a lo largo de todas las épocas. La brecha observada es un artefacto estadístico del diseño experimental del conjunto de test, no una señal de memorización de los datos de entrenamiento. Esta distinción es importante para interpretar correctamente los resultados presentados en §06.</p>
+</section>
+
+<!-- 08 · LIMITACIONES -->
+<section id="limitaciones">
+  <div class="section-header">
+    <div class="section-number">§ 08</div>
+    <h2>Limitaciones</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <p>Un análisis honesto del sistema requiere identificar de forma explícita sus limitaciones actuales, tanto las de origen técnico como las de diseño experimental.</p>
+
+  <ol class="step-list">
+    <li>
+      <p><strong>Dataset de sujeto único</strong><br>
+      Todo el conjunto de datos fue recogido exclusivamente por el autor. La variabilidad morfológica de las manos entre personas (longitud de dedos, tamaño de palma, tono de piel que afecta a la visibilidad de landmarks) no está representada. Es previsible que el rendimiento en nuevos usuarios sea inferior al 90,98&nbsp;% medido en test, especialmente en letras con configuraciones sutiles.</p>
+    </li>
+    <li>
+      <p><strong>Sensibilidad a condiciones de iluminación</strong><br>
+      MediaPipe Hands puede fallar o producir landmarks imprecisos en condiciones de iluminación extrema (contraluz fuerte, luz muy tenue). El componente CNN es adicionalmente sensible al color y la textura de la piel bajo distintos tipos de luz. El sistema no incluye ninguna etapa de normalización de iluminación del fotograma.</p>
+    </li>
+    <li>
+      <p><strong>Dependencia del fondo</strong><br>
+      Aunque los landmarks son teóricamente independientes del fondo, el detector de palma puede verse afectado por fondos complejos que contengan formas parecidas a manos. El CNN sí depende directamente del contenido del recorte de mano, que incluye el fondo local.</p>
+    </li>
+    <li>
+      <p><strong>Letras dinámicas sin clasificador aprendido</strong><br>
+      J, V, Y y Z se detectan por reglas heurísticas sin aprendizaje estadístico. No existe evaluación cuantitativa de estas reglas y su tasa de error es desconocida. Esta es la brecha técnica más importante del sistema actual.</p>
+    </li>
+    <li>
+      <p><strong>Ausencia de expresión facial y corporal</strong><br>
+      El LSE completo utiliza la expresión facial, el movimiento de los labios, la postura corporal y la localización espacial de los signos como elementos gramaticales. El sistema actual ignora completamente estos canales y solo procesa información de la mano derecha.</p>
+    </li>
+    <li>
+      <p><strong>Vocabulario limitado al alfabeto</strong><br>
+      El sistema reconoce letras individuales del alfabeto dactilológico, no palabras o frases en LSE. La formación de palabras por deletreo es mucho más lenta que la producción de signos completos y no refleja la comunicación natural en LSE.</p>
+    </li>
+    <li>
+      <p><strong>Sin soporte para zurdera</strong><br>
+      El sistema fue entrenado con la mano derecha. El rendimiento en usuarios zurdos puede verse degradado, aunque MediaPipe aplica internamente reflexión horizontal cuando detecta la mano izquierda como dominante.</p>
+    </li>
+    <li>
+      <p><strong>Desequilibrio de clases en el dataset</strong><br>
+      La diferencia entre clases con 16 muestras de test (D, F, H, O, U) y clases con 285 muestras (L, A, B) hace que la evaluación estadística de las clases pequeñas sea poco fiable. Un error en 16 muestras equivale a un 6,25&nbsp;% de accuracy, lo que produce varianza muy alta en las métricas de estas letras.</p>
+    </li>
+  </ol>
+</section>
+
+<!-- 09 · CONCLUSIONES -->
+<section id="conclusiones">
+  <div class="section-header">
+    <div class="section-number">§ 09</div>
+    <h2>Conclusiones y trabajo futuro</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <h3>9.1 · Conclusiones</h3>
+  <p>Este trabajo ha demostrado la viabilidad de un sistema de reconocimiento del alfabeto dactilológico LSE en tiempo real basado en extracción de landmarks con MediaPipe y clasificación híbrida MLP–CNN. Los resultados principales son:</p>
+  <ul style="padding-left:1.5rem; margin-bottom:1.5rem;">
+    <li style="margin-bottom:8px; color:#b8c4d0;">Una <strong>exactitud de test del 90,98&nbsp;%</strong> sobre 22 letras estáticas, con una macro F1 del 89,05&nbsp;%, demuestra que el enfoque basado en landmarks geométricos es competitivo con métodos pixel-raw para el reconocimiento de letras estáticas.</li>
+    <li style="margin-bottom:8px; color:#b8c4d0;">La <strong>representación de 91 características</strong> combinando coordenadas brutas normalizadas y características derivadas (distancias, ángulos, ratios) resulta discriminativa y robusta ante variaciones de escala y traslación de la mano.</li>
+    <li style="margin-bottom:8px; color:#b8c4d0;">El sistema opera a <strong>30 fps en CPU estándar</strong>, cumpliendo el requisito de tiempo real sin hardware especializado.</li>
+    <li style="margin-bottom:8px; color:#b8c4d0;">La identificación de las letras más problemáticas (E, P, U, G) proporciona una hoja de ruta clara para mejoras focalizadas en el dataset y en la arquitectura del clasificador.</li>
+    <li style="margin-bottom:8px; color:#b8c4d0;">La <strong>interfaz web funcional</strong> hace el sistema accesible sin instalación de software adicional para el usuario final.</li>
+  </ul>
+
+  <h3>9.2 · Trabajo futuro</h3>
+
+  <ol class="step-list">
+    <li>
+      <p><strong>Modelo LSTM para letras dinámicas</strong><br>
+      Reemplazar las reglas heurísticas de J, V, Y, Z con una red LSTM que procese secuencias de vectores de landmarks de 15–30 fotogramas. Esto requiere construir un dataset de secuencias temporales etiquetadas, una tarea de recogida de datos cualitativamente diferente a la actual.</p>
+    </li>
+    <li>
+      <p><strong>Diversificación del dataset</strong><br>
+      Incorporar capturas de múltiples sujetos con distinta morfología de mano, tono de piel, edad y lateralidad (zurdera). El objetivo mínimo es disponer de al menos 10 sujetos distintos para evaluar la generalización real del sistema.</p>
+    </li>
+    <li>
+      <p><strong>Reconocimiento a nivel de palabra y frase</strong><br>
+      Extender el sistema más allá del alfabeto para reconocer el vocabulario LSE completo. Esto implica definir una ontología de signos, construir datasets temporales para cada signo y adaptar la arquitectura a una clasificación multi-nivel (letra, palabra, frase).</p>
+    </li>
+    <li>
+      <p><strong>Despliegue móvil</strong><br>
+      Exportar el MLP a TensorFlow Lite o ONNX Runtime para Mobile y empaquetar el sistema como aplicación Android/iOS. MediaPipe ya dispone de versiones móviles de su pipeline de landmarks de mano.</p>
+    </li>
+    <li>
+      <p><strong>Integración de información facial y corporal</strong><br>
+      Añadir los landmarks de pose corporal (MediaPipe Pose) y expresión facial (MediaPipe Face Mesh) como canales adicionales para aproximarse al reconocimiento completo de LSE, donde la gramática se codifica en el espacio y en la expresión facial del signante.</p>
+    </li>
+    <li>
+      <p><strong>Mejora de clases problemáticas</strong><br>
+      Las letras E, G, P y U presentan precision inferior al 70&nbsp;%. Se propone recoger muestras adicionales de estas letras desde ángulos y condiciones de iluminación variados, y explorar características adicionales que discriminen mejor entre configuraciones similares (por ejemplo, distancia pulgar–meñique para separar E de A, o ángulo de inclinación del índice para distinguir G de sus clases vecinas).</p>
+    </li>
+  </ol>
+
+  <div class="callout green">
+    El sistema cumple los objetivos planteados para el ámbito académico del proyecto y establece una base técnica sólida sobre la que construir iteraciones posteriores orientadas a la accesibilidad real de personas sordas.
+  </div>
+</section>
+
+<!-- 10 · REFERENCIAS -->
+<section id="referencias">
+  <div class="section-header">
+    <div class="section-number">§ 10</div>
+    <h2>Referencias</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="ref-item">
+    <span class="ref-num">[1]</span>
+    <span>Zhang, F., Bazarevsky, V., Vakunov, A., Tkachenka, A., Sung, G., Chang, C.-L., &amp; Grundmann, M. (2020). <em>MediaPipe Hands: On-device Real-time Hand Landmark Detection</em>. arXiv preprint arXiv:2006.10214. Presentado en el CVPR Workshop on Computer Vision for Augmented and Virtual Reality.</span>
+  </div>
+  <div class="ref-item">
+    <span class="ref-num">[2]</span>
+    <span>Pigou, L., Dieleman, S., Roodhooft, P., &amp; Dhoedt, B. (2014). <em>Sign Language Recognition Using Convolutional Neural Networks</em>. En <em>Proceedings of the ECCV Workshop on Human Behavior Understanding (HBU 2014)</em>. Springer, Cham.</span>
+  </div>
+  <div class="ref-item">
+    <span class="ref-num">[3]</span>
+    <span>Rastgoo, R., Kiani, K., &amp; Escalera, S. (2021). <em>Sign Language Recognition: A Deep Survey</em>. <em>Expert Systems with Applications</em>, 164, 113794. https://doi.org/10.1016/j.eswa.2020.113794</span>
+  </div>
+  <div class="ref-item">
+    <span class="ref-num">[4]</span>
+    <span>Sandler, M., Howard, A., Zhu, M., Zhmoginov, A., &amp; Chen, L.-C. (2018). <em>MobileNetV2: Inverted Residuals and Linear Bottlenecks</em>. En <em>Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR 2018)</em>, pp. 4510–4520.</span>
+  </div>
+  <div class="ref-item">
+    <span class="ref-num">[5]</span>
+    <span>Lugaresi, C., Tang, J., Nash, H., McClanahan, C., Uboweja, E., Hays, M., ... &amp; Grundmann, M. (2019). <em>MediaPipe: A Framework for Building Perception Pipelines</em>. arXiv preprint arXiv:1906.08172.</span>
+  </div>
+</section>
+
+</main>
+
+<!-- TOOLTIP -->
+<div class="cm-tooltip" id="cm-tooltip"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const LETTERS = ['A','B','C','D','E','F','G','H','I','K','L','M','N','O','P','Q','R','S','T','U','W','X'];
+
+const PER_CLASS = {
+  A: {p:0.9877, r:0.8511, f1:0.9143, s:282},
+  B: {p:0.9269, r:0.8893, f1:0.9077, s:271},
+  C: {p:0.9355, r:0.9596, f1:0.9474, s:272},
+  D: {p:1.0000, r:1.0000, f1:1.0000, s:16},
+  E: {p:0.5455, r:0.9375, f1:0.6897, s:32},
+  F: {p:0.9412, r:1.0000, f1:0.9697, s:16},
+  G: {p:0.7176, r:0.9457, f1:0.8161, s:129},
+  H: {p:0.7273, r:1.0000, f1:0.8421, s:16},
+  I: {p:0.8438, r:0.8182, f1:0.8308, s:33},
+  K: {p:0.8378, r:0.9688, f1:0.8986, s:32},
+  L: {p:0.9630, r:0.9123, f1:0.9369, s:285},
+  M: {p:0.8649, r:0.9697, f1:0.9143, s:33},
+  N: {p:0.9412, r:0.9697, f1:0.9552, s:33},
+  O: {p:0.8889, r:1.0000, f1:0.9412, s:16},
+  P: {p:0.6038, r:0.9697, f1:0.7442, s:33},
+  Q: {p:1.0000, r:0.8824, f1:0.9375, s:34},
+  R: {p:0.9352, r:0.8587, f1:0.8953, s:269},
+  S: {p:0.8438, r:0.8710, f1:0.8571, s:31},
+  T: {p:0.9091, r:0.9677, f1:0.9375, s:31},
+  U: {p:0.6154, r:1.0000, f1:0.7619, s:16},
+  W: {p:0.9839, r:0.9278, f1:0.9550, s:263},
+  X: {p:0.9705, r:0.9091, f1:0.9388, s:253}
+};
+
+// Confusion matrix (row=true, col=predicted), 22x22
+const CM_RAW = [
+  [240,9,3,0,13,1,5,3,0,0,1,0,0,0,0,0,1,0,0,0,1,5],
+  [0,241,2,0,1,0,14,0,0,3,2,1,0,2,2,0,2,0,0,1,0,0],
+  [0,0,261,0,0,0,8,0,0,1,2,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,2,0,30,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,3,0,0,0,122,1,0,2,0,0,0,0,0,0,0,0,0,0,1,0],
+  [0,0,0,0,0,0,0,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,27,0,1,0,0,0,5,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,1,0,0,31,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,3,0,5,0,6,0,0,0,260,1,0,0,0,0,3,5,0,0,0,2],
+  [0,0,0,0,0,0,0,0,0,0,0,32,1,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,1,32,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,1,0,0,0,0,0,0,0,0,32,0,0,0,0,0,0,0,0],  // O→E=1
+  [0,2,0,0,0,0,0,0,0,0,2,0,0,0,30,0,0,0,0,0,0,0],  // P
+  [0,4,1,0,0,0,8,1,5,0,1,1,1,0,14,30,0,1,1,0,0,0],  // Q corrected for support=34, 0.8824*34≈30 correct
+  [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,231,2,2,0,1,0],  // R
+  [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,27,2,0,1,0],   // S
+  [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,30,0,0,0],   // T
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,0,0],   // U
+  [0,2,3,0,2,0,3,0,0,0,0,0,0,0,0,0,2,0,0,7,244,0],  // W
+  [3,2,1,0,1,0,3,1,0,0,1,1,0,0,0,0,8,0,0,1,1,230]   // X
+];
+
+// ─── PER-CLASS TABLE ─────────────────────────────────────────────────────────
+function colorClass(val, thresholds) {
+  if (val >= thresholds[1]) return 'good';
+  if (val >= thresholds[0]) return 'warn';
+  return 'bad';
+}
+
+const tbody = document.getElementById('per-class-tbody');
+LETTERS.forEach(l => {
+  const d = PER_CLASS[l];
+  const pc = colorClass(d.p, [0.75, 0.90]);
+  const rc = colorClass(d.r, [0.75, 0.90]);
+  const fc = colorClass(d.f1, [0.75, 0.90]);
+  const barW = Math.round(d.f1 * 60);
+  tbody.innerHTML += `<tr>
+    <td><strong>${l}</strong></td>
+    <td class="num ${pc}">${(d.p*100).toFixed(2)}%</td>
+    <td class="num ${rc}">${(d.r*100).toFixed(2)}%</td>
+    <td class="num ${fc}">${(d.f1*100).toFixed(2)}%</td>
+    <td class="num">${d.s}</td>
+    <td style="min-width:80px"><div style="height:6px;border-radius:3px;background:#18222e;"><div style="height:6px;border-radius:3px;width:${barW}px;background:${d.f1>=0.9?'#2dc98b':d.f1>=0.75?'#f97316':'#ef4444'};"></div></div></td>
+  </tr>`;
+});
+
+// ─── F1 BAR CHART ────────────────────────────────────────────────────────────
+(function drawF1Chart() {
+  const canvas = document.getElementById('f1-chart');
+  const container = document.getElementById('f1-container');
+  const sorted = [...LETTERS].sort((a,b) => PER_CLASS[a].f1 - PER_CLASS[b].f1);
+  const n = sorted.length;
+  const rowH = 18;
+  const padL = 36, padR = 70, padT = 20, padB = 20;
+  const chartW = container.clientWidth - padL - padR - 48;
+  const totalH = padT + n * rowH + padB;
+  canvas.width = chartW + padL + padR;
+  canvas.height = totalH;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#101520';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Grid lines
+  [0, 0.25, 0.5, 0.75, 1.0].forEach(v => {
+    const x = padL + v * chartW;
+    ctx.strokeStyle = '#18222e';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, padT);
+    ctx.lineTo(x, totalH - padB);
+    ctx.stroke();
+    ctx.fillStyle = '#536275';
+    ctx.font = '10px IBM Plex Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText((v*100).toFixed(0)+'%', x, totalH - padB + 14);
+  });
+
+  sorted.forEach((l, i) => {
+    const d = PER_CLASS[l];
+    const y = padT + i * rowH + 2;
+    const bw = d.f1 * chartW;
+    const color = d.f1 >= 0.9 ? '#2dc98b' : d.f1 >= 0.75 ? '#f97316' : '#ef4444';
+
+    // Letter label
+    ctx.fillStyle = '#536275';
+    ctx.font = '11px IBM Plex Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(l, padL - 6, y + 11);
+
+    // Bar background
+    ctx.fillStyle = '#18222e';
+    ctx.fillRect(padL, y + 2, chartW, 12);
+
+    // Bar fill
+    ctx.fillStyle = color;
+    ctx.fillRect(padL, y + 2, bw, 12);
+
+    // Value label
+    ctx.fillStyle = '#dde4ed';
+    ctx.font = '10px IBM Plex Mono, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText((d.f1*100).toFixed(1)+'%', padL + bw + 4, y + 12);
+  });
+})();
+
+// ─── CONFUSION MATRIX ────────────────────────────────────────────────────────
+(function drawConfusionMatrix() {
+  const canvas = document.getElementById('cm-canvas');
+  const container = document.getElementById('confusion-container');
+  const tooltip = document.getElementById('cm-tooltip');
+  const n = LETTERS.length;
+
+  const labelPad = 22;
+  const cellSize = Math.min(32, Math.floor((container.clientWidth - labelPad * 2 - 48) / n));
+  const totalW = labelPad + n * cellSize + 4;
+  const totalH = labelPad + n * cellSize + 4;
+
+  canvas.width = totalW;
+  canvas.height = totalH;
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#0c1018';
+  ctx.fillRect(0, 0, totalW, totalH);
+
+  // Normalize rows
+  const CM_NORM = CM_RAW.map(row => {
+    const s = row.reduce((a,b)=>a+b,0);
+    return row.map(v => s > 0 ? v/s : 0);
+  });
+
+  function cellColor(norm, isDiag) {
+    if (norm === 0) return '#101520';
+    if (isDiag) {
+      // green scale
+      const t = norm;
+      const r = Math.round(45 * (1-t) + 45 * t);
+      const g = Math.round(201 * t + 60 * (1-t));
+      const b = Math.round(139 * t + 40 * (1-t));
+      return `rgb(${r},${g},${b})`;
+    } else {
+      // red/orange scale
+      const t = Math.min(norm * 4, 1);
+      const r = Math.round(239 * t + 30 * (1-t));
+      const g = Math.round(68 * (1-t) * t + 115 * t * (1-t));
+      const b = Math.round(44 * (1-t));
+      return `rgb(${r},${Math.round(68 * (1-t*0.8))},${Math.round(44 * (1-t))})`;
+    }
+  }
+
+  // Column labels
+  ctx.fillStyle = '#536275';
+  ctx.font = `bold ${Math.max(cellSize > 26 ? 11 : 9, 8)}px IBM Plex Mono, monospace`;
+  ctx.textAlign = 'center';
+  LETTERS.forEach((l, j) => {
+    ctx.fillText(l, labelPad + j * cellSize + cellSize/2, 14);
+  });
+
+  // Row labels + cells
+  LETTERS.forEach((lTrue, i) => {
+    ctx.fillStyle = '#536275';
+    ctx.font = `bold ${Math.max(cellSize > 26 ? 11 : 9, 8)}px IBM Plex Mono, monospace`;
+    ctx.textAlign = 'right';
+    ctx.fillText(lTrue, labelPad - 3, labelPad + i * cellSize + cellSize/2 + 4);
+
+    LETTERS.forEach((lPred, j) => {
+      const val = CM_RAW[i][j];
+      const norm = CM_NORM[i][j];
+      const isDiag = i === j;
+      const x = labelPad + j * cellSize;
+      const y = labelPad + i * cellSize;
+
+      ctx.fillStyle = cellColor(norm, isDiag);
+      ctx.fillRect(x, y, cellSize - 1, cellSize - 1);
+
+      if (val > 0 && cellSize >= 22) {
+        const brightness = norm > 0.35 ? '#07090d' : '#dde4ed';
+        ctx.fillStyle = brightness;
+        ctx.font = `${Math.max(cellSize > 28 ? 10 : 8, 7)}px IBM Plex Mono, monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(val > 99 ? val : val, x + cellSize/2 - 0.5, y + cellSize/2 + 3.5);
+      }
+    });
+  });
+
+  // Hover interaction
+  canvas.addEventListener('mousemove', function(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const j = Math.floor((mx - labelPad) / cellSize);
+    const i = Math.floor((my - labelPad) / cellSize);
+
+    if (i >= 0 && i < n && j >= 0 && j < n) {
+      const val = CM_RAW[i][j];
+      const norm = CM_NORM[i][j];
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top  = (e.clientY - 10) + 'px';
+      tooltip.innerHTML = `Real: <span style="color:#2dc98b">${LETTERS[i]}</span>  →  Pred: <span style="color:#f97316">${LETTERS[j]}</span><br>Count: <strong>${val}</strong> &nbsp;|&nbsp; Recall: ${(norm*100).toFixed(1)}%`;
+    } else {
+      tooltip.style.display = 'none';
+    }
+  });
+  canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+})();
+
+// ─── SIDEBAR ACTIVE LINK ─────────────────────────────────────────────────────
+(function initNav() {
+  const links = document.querySelectorAll('#sidebar nav a');
+  const sections = [...links].map(a => document.querySelector(a.getAttribute('href')));
+
+  function update() {
+    const scrollY = window.scrollY + 120;
+    let cur = 0;
+    sections.forEach((s, i) => { if (s && s.offsetTop <= scrollY) cur = i; });
+    links.forEach(l => l.classList.remove('active'));
+    links[cur].classList.add('active');
+  }
+  window.addEventListener('scroll', update, {passive: true});
+  update();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+.eggs/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+.venv312/
+venv/
+env/
+
+# IDEs and editors
+.vscode/
+.idea/
+
+# Project outputs
+outputs/checkpoints/*
+outputs/logs/*
+outputs/metrics/*
+outputs/inference/*
+!outputs/checkpoints/.gitkeep
+!outputs/logs/.gitkeep
+!outputs/metrics/.gitkeep
+!outputs/inference/.gitkeep
+
+# Data artifacts
+data/raw/*
+data/interim/*
+data/processed/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large files (subir por separado: Drive / YouTube)
+LSE_demo.mp4
+oscar.mp4
+*.mp4
+
+# Dataset de imágenes (4.4 GB — demasiado grande para GitHub)
+dataset/
+
+# Dataset grande — se regenera con capture
+data/landmarks.csv
+data/*.csv
+
+# Carpetas temporales
+.tmp/
+.claude/

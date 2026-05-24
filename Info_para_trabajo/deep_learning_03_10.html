@@ -1,0 +1,2441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Computer Vision — Deep Learning: De CNN al Estado del Arte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,600;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&family=IBM+Plex+Serif:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue-950: #03071e;
+    --blue-900: #0a1628;
+    --blue-800: #0d2137;
+    --blue-700: #0f3460;
+    --blue-600: #1a4a7a;
+    --blue-500: #1e6091;
+    --blue-400: #2980b9;
+    --blue-300: #5dade2;
+    --blue-200: #aed6f1;
+    --blue-100: #d6eaf8;
+    --blue-50:  #eaf4fb;
+    --white:    #f8fafc;
+    --gray-300: #94a3b8;
+    --gray-200: #cbd5e1;
+    --accent:   #3b82f6;
+    --accent-light: #60a5fa;
+    --code-bg:  #0d1b2e;
+    --code-border: #1e3a5f;
+    --inline-code-bg: #1a3a5c;
+    --note-bg:  #0c2340;
+    --warn-bg:  #0f2d1a;
+    --warn-border: #166534;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+
+  body {
+    background-color: var(--blue-950);
+    color: var(--white);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.75;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(160deg, var(--blue-900) 0%, var(--blue-800) 50%, #0a1e38 100%);
+    border-bottom: 1px solid var(--blue-700);
+    padding: 4rem 2rem 3rem;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -60px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(30,96,145,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .session-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--blue-300);
+    margin-bottom: 1rem;
+  }
+  header h1 {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 2.6rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--white);
+    margin-bottom: 0.75rem;
+  }
+  header .subtitle {
+    font-size: 1.05rem;
+    color: var(--blue-200);
+    font-weight: 300;
+    max-width: 680px;
+    margin-bottom: 2rem;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--blue-300);
+  }
+  .meta-item span:first-child { color: var(--blue-400); }
+
+  /* ── LAYOUT ── */
+  .page {
+    display: flex;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  /* ── SIDEBAR / TOC ── */
+  .toc {
+    width: 260px;
+    flex-shrink: 0;
+    padding: 2.5rem 1rem 2.5rem 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    border-right: 1px solid var(--blue-800);
+  }
+  .toc::-webkit-scrollbar { width: 4px; }
+  .toc::-webkit-scrollbar-thumb { background: var(--blue-700); border-radius: 2px; }
+  .toc-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--blue-400);
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--blue-800);
+  }
+  .toc ul { list-style: none; }
+  .toc li { margin-bottom: 0.05rem; }
+  .toc a {
+    display: block;
+    font-size: 0.82rem;
+    color: var(--gray-300);
+    text-decoration: none;
+    padding: 0.28rem 0.6rem;
+    border-radius: 3px;
+    transition: all 0.15s;
+    line-height: 1.4;
+  }
+  .toc a:hover { color: var(--white); background: var(--blue-800); }
+  .toc a.section { color: var(--blue-200); font-weight: 600; margin-top: 0.75rem; font-size: 0.8rem; }
+  .toc a.sub { padding-left: 1.2rem; font-size: 0.78rem; }
+  .toc a.subsub { padding-left: 1.9rem; font-size: 0.74rem; color: var(--blue-300); }
+
+  /* ── MAIN CONTENT ── */
+  main {
+    flex: 1;
+    min-width: 0;
+    padding: 3rem 0 5rem 3rem;
+  }
+
+  /* ── SECTIONS ── */
+  .section {
+    margin-bottom: 4.5rem;
+    padding-bottom: 4rem;
+    border-bottom: 1px solid var(--blue-800);
+  }
+  .section:last-child { border-bottom: none; }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  .section-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--blue-400);
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+  }
+  h2 {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 1.85rem;
+    font-weight: 600;
+    color: var(--white);
+    line-height: 1.25;
+  }
+  .section-intro {
+    color: var(--blue-200);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    padding-left: 0;
+    font-style: italic;
+    border-left: 3px solid var(--blue-600);
+    padding-left: 1rem;
+  }
+
+  h3 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--blue-200);
+    margin-top: 2.5rem;
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--blue-800);
+  }
+  h4 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--blue-300);
+    margin-top: 1.8rem;
+    margin-bottom: 0.6rem;
+  }
+
+  p {
+    margin-bottom: 1.1rem;
+    color: #c8d8e8;
+    font-size: 0.96rem;
+  }
+
+  strong { color: var(--white); font-weight: 600; }
+  em { color: var(--blue-200); }
+
+  /* ── CODE BLOCKS ── */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    overflow: hidden;
+  }
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 1rem;
+    background: #091524;
+    border-bottom: 1px solid var(--code-border);
+  }
+  .code-lang {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--blue-400);
+  }
+  .code-filename {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--blue-300);
+  }
+  pre {
+    padding: 1.25rem 1.4rem;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: #d0e8ff;
+  }
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-thumb { background: var(--blue-700); }
+
+  /* Syntax highlighting */
+  .kw  { color: #79b8ff; }   /* keyword */
+  .fn  { color: #b3d9ff; }   /* function */
+  .st  { color: #9ecbff; }   /* string */
+  .cm  { color: #4d7a9e; font-style: italic; } /* comment */
+  .nu  { color: #a8d8ea; }   /* number */
+  .cl  { color: #e1f0ff; font-weight: 600; }   /* class */
+  .de  { color: #c9e3f7; }   /* decorator */
+  .op  { color: #5dade2; }   /* operator */
+
+  code {
+    background: var(--inline-code-bg);
+    color: #9ecbff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.83em;
+    padding: 0.15em 0.45em;
+    border-radius: 3px;
+  }
+
+  /* ── CALLOUTS ── */
+  .note, .warning, .tip, .important {
+    border-radius: 5px;
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+  .note {
+    background: var(--note-bg);
+    border-left: 3px solid var(--blue-400);
+    color: var(--blue-100);
+  }
+  .warning {
+    background: #1a1000;
+    border-left: 3px solid #b7791f;
+    color: #fdecc8;
+  }
+  .tip {
+    background: var(--warn-bg);
+    border-left: 3px solid #22c55e;
+    color: #d1fae5;
+  }
+  .important {
+    background: #1a0a1e;
+    border-left: 3px solid #a855f7;
+    color: #e9d5ff;
+  }
+  .callout-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+    display: block;
+  }
+  .note .callout-label    { color: var(--blue-300); }
+  .warning .callout-label { color: #f6ad55; }
+  .tip .callout-label     { color: #4ade80; }
+  .important .callout-label { color: #c084fc; }
+
+  /* ── DIAGRAM BOXES ── */
+  .diagram {
+    background: var(--blue-900);
+    border: 1px solid var(--blue-700);
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.8;
+    color: var(--blue-200);
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* ── FOLDER TREE ── */
+  .tree {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 6px;
+    padding: 1.2rem 1.5rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.9;
+    color: #aed6f1;
+    margin: 1.25rem 0;
+  }
+  .tree .dir  { color: #5dade2; font-weight: 600; }
+  .tree .file { color: #aed6f1; }
+  .tree .comm { color: #4d7a9e; font-style: italic; }
+
+  /* ── TABLE ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.88rem;
+  }
+  th {
+    background: var(--blue-800);
+    color: var(--blue-200);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 2px solid var(--blue-600);
+  }
+  td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--blue-800);
+    color: #c8d8e8;
+    vertical-align: top;
+  }
+  tr:hover td { background: rgba(30, 96, 145, 0.1); }
+
+  /* ── ARCH CARD ── */
+  .arch-card {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  .arch-item {
+    background: var(--blue-900);
+    border: 1px solid var(--blue-700);
+    border-radius: 5px;
+    padding: 1rem 1.25rem;
+  }
+  .arch-item .layer-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--blue-300);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+  }
+  .arch-item .layer-desc {
+    font-size: 0.84rem;
+    color: var(--blue-100);
+    line-height: 1.5;
+  }
+
+  /* ── TIMELINE ── */
+  .timeline {
+    position: relative;
+    padding-left: 1.5rem;
+    margin: 2rem 0;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 4px; bottom: 4px;
+    width: 2px;
+    background: linear-gradient(180deg, var(--blue-500), var(--blue-700));
+    border-radius: 2px;
+  }
+  .tl-item {
+    position: relative;
+    margin-bottom: 1.75rem;
+    padding-left: 1.25rem;
+  }
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: -1.85rem; top: 6px;
+    width: 10px; height: 10px;
+    background: var(--blue-400);
+    border-radius: 50%;
+    border: 2px solid var(--blue-950);
+  }
+  .tl-year {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--blue-400);
+    letter-spacing: 0.1em;
+  }
+  .tl-title {
+    font-weight: 600;
+    color: var(--white);
+    font-size: 0.95rem;
+    margin-top: 0.15rem;
+  }
+  .tl-desc {
+    font-size: 0.86rem;
+    color: #94b8d4;
+    margin-top: 0.3rem;
+    line-height: 1.55;
+  }
+
+  /* ── FORMULA ── */
+  .formula {
+    background: var(--blue-900);
+    border: 1px solid var(--blue-700);
+    border-radius: 5px;
+    padding: 1rem 1.5rem;
+    margin: 1.25rem 0;
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.92rem;
+    color: var(--blue-100);
+    letter-spacing: 0.03em;
+  }
+
+  /* ── PROGRESS INDICATOR ── */
+  .time-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--blue-800);
+    border: 1px solid var(--blue-600);
+    color: var(--blue-300);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .toc { display: none; }
+    main { padding: 2rem 0; }
+    .page { padding: 0 1rem; }
+    header h1 { font-size: 1.9rem; }
+  }
+
+  @media print {
+    .toc { display: none; }
+    body { background: white; color: black; }
+  }
+
+  /* ── SCROLL HIGHLIGHT ── */
+  :target { scroll-margin-top: 2rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="session-label">Ingeniería Industria Conectada — Sistempas de Percepción y Visión Artificial &nbsp;·&nbsp; Bloque 3</div>
+    <h1>Deep Learning en Computer Vision</h1>
+    <p class="subtitle">Estructura de un proyecto hasta el estado del arte: CNNs, Vision Transformers, modelos fundacionales e IA generativa aplicada a visión.</p>
+    <div class="meta-row">
+      <div class="meta-item"><span>Syllabus</span> BLOQUE 3</div>
+      <div class="meta-item"><span>Nivel</span> Avanzado — INDUSTRIA CONECTADA</div>
+      <div class="meta-item"><span>Prereq.</span> Transformaciones de imagen, NumPy, Python básico</div>
+      <div class="meta-item"><span>Entorno</span> Python 3.10+, PyTorch, VS Code / PyCharm</div>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+  <!-- ── TOC ── -->
+  <nav class="toc">
+    <div class="toc-title">Contenido</div>
+    <ul>
+      <li><a href="#s1" class="section">1. Estructura del proyecto</a></li>
+      <li><a href="#s1-layout" class="sub">Árbol de carpetas</a></li>
+      <li><a href="#s1-entorno" class="sub">Entorno virtual</a></li>
+      <li><a href="#s1-config" class="sub">Configuración centralizada</a></li>
+      <li><a href="#s1-dataset" class="sub">Dataset class</a></li>
+      <li><a href="#s1-ide" class="sub">VS Code / PyCharm</a></li>
+
+      <li><a href="#s2" class="section">2. Etiquetado</a></li>
+      <li><a href="#s2-label" class="sub">Label Studio</a></li>
+      <li><a href="#s2-formatos" class="sub">Formatos de anotación</a></li>
+      <li><a href="#s2-split" class="sub">Train / Val / Test split</a></li>
+
+      <li><a href="#s3" class="section">3. Redes neuronales conv.</a></li>
+      <li><a href="#s3-perceptron" class="sub">Del perceptrón</a></li>
+      <li><a href="#s3-conv" class="sub">Convolución</a></li>
+      <li><a href="#s3-pooling" class="sub">Pooling y activaciones</a></li>
+      <li><a href="#s3-full" class="sub">CNN completa</a></li>
+      <li><a href="#s3-backprop" class="sub">Backpropagation</a></li>
+      <li><a href="#s3-codigo" class="sub">Código PyTorch</a></li>
+
+      <li><a href="#s4" class="section">4. Arquitecturas clásicas</a></li>
+      <li><a href="#s4-lenet" class="sub">LeNet → AlexNet</a></li>
+      <li><a href="#s4-vgg" class="sub">VGG</a></li>
+      <li><a href="#s4-resnet" class="sub">ResNet</a></li>
+      <li><a href="#s4-efficientnet" class="sub">EfficientNet</a></li>
+
+      <li><a href="#s5" class="section">5. Entrenamiento</a></li>
+      <li><a href="#s5-loop" class="sub">Loop de entrenamiento</a></li>
+      <li><a href="#s5-augment" class="sub">Data augmentation</a></li>
+      <li><a href="#s5-transfer" class="sub">Transfer learning</a></li>
+      <li><a href="#s5-eval" class="sub">Métricas y evaluación</a></li>
+
+      <li><a href="#s6" class="section">6. Atención y Transformers</a></li>
+      <li><a href="#s6-attention" class="sub">Mecanismo de atención</a></li>
+      <li><a href="#s6-vit" class="sub">Vision Transformer (ViT)</a></li>
+      <li><a href="#s6-swin" class="sub">Swin Transformer</a></li>
+      <li><a href="#s6-dino" class="sub">DINO / DINOv2</a></li>
+
+      <li><a href="#s7" class="section">7. Detección y segmentación</a></li>
+      <li><a href="#s7-det" class="sub">YOLO, DETR</a></li>
+      <li><a href="#s7-seg" class="sub">SAM</a></li>
+      <li><a href="#s7-grounding" class="sub">Grounding DINO</a></li>
+
+      <li><a href="#s8" class="section">8. Modelos fundacionales</a></li>
+      <li><a href="#s8-clip" class="sub">CLIP</a></li>
+      <li><a href="#s8-llava" class="sub">LLaVA / GPT-4V</a></li>
+      <li><a href="#s8-agents" class="sub">Agentes visuales</a></li>
+
+      <li><a href="#s9" class="section">9. IA Generativa en CV</a></li>
+      <li><a href="#s9-gan" class="sub">GANs</a></li>
+      <li><a href="#s9-diffusion" class="sub">Modelos de difusión</a></li>
+      <li><a href="#s9-apps" class="sub">Aplicaciones</a></li>
+
+      <li><a href="#s10" class="section">10. Inferencia y despliegue</a></li>
+      <li><a href="#s10-onnx" class="sub">ONNX / TorchScript</a></li>
+      <li><a href="#s10-api" class="sub">API con FastAPI</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main>
+
+    <!-- ════════════════════════════════════════
+         SECCIÓN 1 — ESTRUCTURA DEL PROYECTO
+    ═══════════════════════════════════════════ -->
+    <section class="section" id="s1">
+      <div class="time-badge">45 min</div>
+      <div class="section-header">
+        <span class="section-num">01</span>
+        <h2>Cómo estructurar un proyecto de deep learning</h2>
+      </div>
+      <p class="section-intro">Un modelo que funciona en un notebook pero no puede reproducirse, auditarse ni desplegarse no es un modelo de producción. La estructura del proyecto es la primera decisión de ingeniería.</p>
+
+      <p>La diferencia entre un experimento y un sistema mantenible no está en el modelo, sino en cómo se organiza el código que lo rodea. Un proyecto bien estructurado permite que cualquier miembro del equipo entienda qué hace cada módulo, que los experimentos sean reproducibles semanas después de haberlos lanzado, y que el camino desde el entrenamiento hasta la inferencia en producción sea directo y auditable.</p>
+
+      <p>En esta sección vamos a definir una estructura de proyecto estándar para proyectos de Computer Vision, discutir las herramientas del entorno de desarrollo y construir los componentes base que reutilizaremos durante toda la sesión.</p>
+
+      <h3 id="s1-layout">Árbol de carpetas recomendado</h3>
+
+      <p>No existe una única estructura correcta, pero sí hay principios que siempre aplican: separación de datos y código, configuración externalizada y cada componente con una responsabilidad única. La siguiente organización es directamente aplicable a proyectos medianos (clasificación, detección, segmentación) y escala bien a proyectos grandes.</p>
+
+      <div class="tree"><span class="dir">mi_proyecto_cv/</span>
+<span class="comm">│</span>
+├── <span class="dir">data/</span>                   <span class="comm"># datos gestionados, NO versionar con git</span>
+│   ├── <span class="dir">raw/</span>              <span class="comm"># imágenes originales sin tocar</span>
+│   ├── <span class="dir">processed/</span>        <span class="comm"># pre-procesadas (resize, normalización, ...)</span>
+│   ├── <span class="dir">annotations/</span>      <span class="comm"># archivos de anotación (JSON, XML, YAML)</span>
+│   ├── <span class="dir">train/</span>
+│   │   ├── <span class="dir">images/</span>
+│   │   └── <span class="dir">labels/</span>
+│   ├── <span class="dir">val/</span>
+│   │   ├── <span class="dir">images/</span>
+│   │   └── <span class="dir">labels/</span>
+│   └── <span class="dir">test/</span>
+│       ├── <span class="dir">images/</span>
+│       └── <span class="dir">labels/</span>
+<span class="comm">│</span>
+├── <span class="dir">src/</span>                    <span class="comm"># código fuente del proyecto</span>
+│   ├── <span class="file">__init__.py</span>
+│   ├── <span class="dir">datasets/</span>         <span class="comm"># Dataset classes, transforms, augmentation</span>
+│   │   ├── <span class="file">__init__.py</span>
+│   │   ├── <span class="file">base_dataset.py</span>
+│   │   └── <span class="file">transforms.py</span>
+│   ├── <span class="dir">models/</span>           <span class="comm"># definición de arquitecturas</span>
+│   │   ├── <span class="file">__init__.py</span>
+│   │   ├── <span class="file">cnn.py</span>
+│   │   └── <span class="file">vit.py</span>
+│   ├── <span class="dir">training/</span>
+│   │   ├── <span class="file">trainer.py</span>
+│   │   ├── <span class="file">losses.py</span>
+│   │   └── <span class="file">metrics.py</span>
+│   ├── <span class="dir">inference/</span>
+│   │   ├── <span class="file">predictor.py</span>
+│   │   └── <span class="file">postprocessing.py</span>
+│   └── <span class="dir">utils/</span>
+│       ├── <span class="file">logger.py</span>
+│       └── <span class="file">visualization.py</span>
+<span class="comm">│</span>
+├── <span class="dir">configs/</span>               <span class="comm"># configuración en YAML, no en el código</span>
+│   ├── <span class="file">base.yaml</span>
+│   └── <span class="file">experiment_001.yaml</span>
+<span class="comm">│</span>
+├── <span class="dir">scripts/</span>               <span class="comm"># scripts de entrada: entrenamiento, eval, etc.</span>
+│   ├── <span class="file">train.py</span>
+│   ├── <span class="file">evaluate.py</span>
+│   └── <span class="file">infer.py</span>
+<span class="comm">│</span>
+├── <span class="dir">notebooks/</span>             <span class="comm"># EDA, prototipado. No lógica de producción</span>
+│   └── <span class="file">01_exploracion.ipynb</span>
+<span class="comm">│</span>
+├── <span class="dir">outputs/</span>               <span class="comm"># checkpoints, logs, resultados (.gitignore)</span>
+│   ├── <span class="dir">checkpoints/</span>
+│   ├── <span class="dir">logs/</span>
+│   └── <span class="dir">predictions/</span>
+<span class="comm">│</span>
+├── <span class="file">requirements.txt</span>
+├── <span class="file">setup.py</span>              <span class="comm"># o pyproject.toml</span>
+├── <span class="file">.env</span>                  <span class="comm"># variables de entorno (¡no versionar!)</span>
+├── <span class="file">.gitignore</span>
+└── <span class="file">README.md</span></div>
+
+      <div class="note">
+        <span class="callout-label">Nota sobre la carpeta data/</span>
+        La carpeta <code>data/</code> nunca debe estar bajo control de versiones con Git. Utiliza herramientas especializadas para datos como <strong>DVC</strong> (Data Version Control), que permite versionar datasets grandes sobre almacenamiento S3, GCS o un NAS local. Git solo versiona código y configuración.
+      </div>
+
+      <h3 id="s1-entorno">Entorno virtual y dependencias</h3>
+
+      <p>Antes de escribir una sola línea de modelo, hay que resolver el entorno de ejecución. Mezclar dependencias de proyectos distintos en el mismo Python es una fuente constante de errores difíciles de depurar. Cada proyecto tiene su propio entorno.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">bash</span><span class="code-filename">terminal</span></div>
+        <pre><span class="cm"># Crear entorno virtual con venv</span>
+python -m venv .venv
+source .venv/bin/activate      <span class="cm"># Linux / macOS</span>
+.venv\Scripts\activate         <span class="cm"># Windows (PowerShell)</span>
+
+<span class="cm"># Instalar dependencias base</span>
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install numpy opencv-python pillow matplotlib
+pip install albumentations          <span class="cm"># augmentation</span>
+pip install hydra-core omegaconf    <span class="cm"># gestión de configuración</span>
+pip install wandb                   <span class="cm"># experiment tracking</span>
+pip install pytest black isort      <span class="cm"># calidad de código</span>
+
+<span class="cm"># Guardar el entorno reproducible</span>
+pip freeze > requirements.txt</pre>
+      </div>
+
+      <p>Para proyectos en equipos o con pipelines de CI/CD, considera usar <strong>conda</strong> o <strong>Poetry</strong> para una gestión de dependencias más robusta. Poetry en particular resuelve correctamente conflictos de versiones y genera lockfiles deterministas.</p>
+
+      <h3 id="s1-config">Configuración centralizada con Hydra</h3>
+
+      <p>Uno de los errores más frecuentes en proyectos de investigación es incrustar hiperparámetros directamente en el código. Esto hace que reproducir un experimento anterior requiera buscar en el historial de git qué valores tenían esas constantes. La solución es externalizar toda la configuración en archivos YAML y cargarla mediante una librería especializada.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">yaml</span><span class="code-filename">configs/base.yaml</span></div>
+        <pre>model:
+  name: resnet50
+  num_classes: 10
+  pretrained: true
+
+training:
+  epochs: 50
+  batch_size: 32
+  learning_rate: 1e-4
+  optimizer: adamw
+  scheduler: cosine
+  weight_decay: 1e-5
+  early_stopping_patience: 10
+
+data:
+  train_dir: data/train
+  val_dir: data/val
+  test_dir: data/test
+  image_size: [224, 224]
+  num_workers: 4
+
+logging:
+  project: mi_proyecto_cv
+  experiment: baseline_resnet50
+  save_dir: outputs/checkpoints</pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">scripts/train.py</span></div>
+        <pre><span class="kw">import</span> hydra
+<span class="kw">from</span> omegaconf <span class="kw">import</span> <span class="cl">DictConfig</span>
+
+<span class="de">@hydra.main</span>(version_base=<span class="kw">None</span>, config_path=<span class="st">"../configs"</span>, config_name=<span class="st">"base"</span>)
+<span class="kw">def</span> <span class="fn">train</span>(cfg: <span class="cl">DictConfig</span>) -> <span class="kw">None</span>:
+    <span class="cm"># Acceso seguro y tipado a la configuración</span>
+    print(f<span class="st">"Entrenando {cfg.model.name} durante {cfg.training.epochs} epochs"</span>)
+    print(f<span class="st">"LR: {cfg.training.learning_rate}, Batch: {cfg.training.batch_size}"</span>)
+
+    <span class="cm"># Sobreescritura desde línea de comandos:</span>
+    <span class="cm"># python train.py training.learning_rate=5e-5 model.name=vit_base</span>
+
+<span class="kw">if</span> __name__ == <span class="st">"__main__"</span>:
+    train()</pre>
+      </div>
+
+      <p>Con Hydra podemos lanzar barridos de hiperparámetros directamente desde la línea de comandos (<code>python train.py --multirun training.learning_rate=1e-4,5e-5,1e-5</code>) y cada experimento queda registrado automáticamente con su configuración completa en un directorio de salida con timestamp.</p>
+
+      <h3 id="s1-dataset">La clase Dataset en PyTorch</h3>
+
+      <p>PyTorch define un contrato claro para cargar datos: cualquier clase que herede de <code>torch.utils.data.Dataset</code> debe implementar <code>__len__</code> y <code>__getitem__</code>. Este contrato permite que el <code>DataLoader</code> gestione automáticamente batching, shuffling y carga en paralelo con múltiples workers.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">src/datasets/base_dataset.py</span></div>
+        <pre><span class="kw">import</span> os
+<span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cl">Path</span>
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="cl">Callable, Optional, Tuple, List</span>
+
+<span class="kw">import</span> torch
+<span class="kw">from</span> torch.utils.data <span class="kw">import</span> <span class="cl">Dataset</span>
+<span class="kw">from</span> PIL <span class="kw">import</span> <span class="cl">Image</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+
+<span class="kw">class</span> <span class="cl">ImageClassificationDataset</span>(<span class="cl">Dataset</span>):
+    <span class="st">"""
+    Dataset genérico para clasificación de imágenes.
+    Asume estructura de carpetas: root/class_name/image.jpg
+    Compatible con torchvision.datasets.ImageFolder como alternativa.
+    """</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(
+        self,
+        root_dir: str,
+        transform: <span class="cl">Optional</span>[<span class="cl">Callable</span>] = <span class="kw">None</span>,
+        extensions: <span class="cl">Tuple</span>[str, ...] = (<span class="st">".jpg"</span>, <span class="st">".jpeg"</span>, <span class="st">".png"</span>),
+    ):
+        self.root = <span class="cl">Path</span>(root_dir)
+        self.transform = transform
+        self.extensions = extensions
+
+        <span class="cm"># Descubrir clases automáticamente desde subcarpetas</span>
+        self.classes: <span class="cl">List</span>[str] = sorted(
+            d.name <span class="kw">for</span> d <span class="kw">in</span> self.root.iterdir()
+            <span class="kw">if</span> d.is_dir()
+        )
+        self.class_to_idx = {cls: i <span class="kw">for</span> i, cls <span class="kw">in</span> <span class="fn">enumerate</span>(self.classes)}
+
+        <span class="cm"># Construir lista (path, label)</span>
+        self.samples: <span class="cl">List</span>[<span class="cl">Tuple</span>[<span class="cl">Path</span>, int]] = []
+        <span class="kw">for</span> cls_name, cls_idx <span class="kw">in</span> self.class_to_idx.items():
+            cls_dir = self.root / cls_name
+            <span class="kw">for</span> img_path <span class="kw">in</span> cls_dir.iterdir():
+                <span class="kw">if</span> img_path.suffix.lower() <span class="kw">in</span> self.extensions:
+                    self.samples.append((img_path, cls_idx))
+
+        <span class="kw">if not</span> self.samples:
+            <span class="kw">raise</span> <span class="cl">RuntimeError</span>(
+                f<span class="st">"No se encontraron imágenes en {root_dir}. "</span>
+                f<span class="st">"Verifica la estructura de carpetas."</span>
+            )
+
+    <span class="kw">def</span> <span class="fn">__len__</span>(self) -> int:
+        <span class="kw">return</span> len(self.samples)
+
+    <span class="kw">def</span> <span class="fn">__getitem__</span>(self, idx: int) -> <span class="cl">Tuple</span>[torch.<span class="cl">Tensor</span>, int]:
+        img_path, label = self.samples[idx]
+
+        <span class="cm"># Cargar en RGB (independiente del canal original)</span>
+        image = <span class="cl">Image</span>.open(img_path).convert(<span class="st">"RGB"</span>)
+
+        <span class="kw">if</span> self.transform <span class="kw">is not None</span>:
+            image = self.transform(image)
+
+        <span class="kw">return</span> image, label
+
+    <span class="kw">def</span> <span class="fn">class_distribution</span>(self) -> dict:
+        <span class="st">"""Estadísticas del balance de clases."""</span>
+        from collections <span class="kw">import</span> <span class="cl">Counter</span>
+        counts = <span class="cl">Counter</span>(label <span class="kw">for</span> _, label <span class="kw">in</span> self.samples)
+        <span class="kw">return</span> {self.classes[k]: v <span class="kw">for</span> k, v <span class="kw">in</span> counts.items()}
+
+
+<span class="cm"># Ejemplo de uso con DataLoader</span>
+<span class="kw">if</span> __name__ == <span class="st">"__main__"</span>:
+    <span class="kw">from</span> torchvision <span class="kw">import</span> transforms
+    <span class="kw">from</span> torch.utils.data <span class="kw">import</span> <span class="cl">DataLoader</span>
+
+    transform = transforms.<span class="cl">Compose</span>([
+        transforms.<span class="cl">Resize</span>((<span class="nu">224</span>, <span class="nu">224</span>)),
+        transforms.<span class="cl">ToTensor</span>(),
+        transforms.<span class="cl">Normalize</span>(mean=[<span class="nu">0.485</span>, <span class="nu">0.456</span>, <span class="nu">0.406</span>],
+                              std=[<span class="nu">0.229</span>, <span class="nu">0.224</span>, <span class="nu">0.225</span>]),
+    ])
+
+    dataset = <span class="cl">ImageClassificationDataset</span>(<span class="st">"data/train"</span>, transform=transform)
+    loader  = <span class="cl">DataLoader</span>(dataset, batch_size=<span class="nu">32</span>, shuffle=<span class="kw">True</span>, num_workers=<span class="nu">4</span>)
+
+    print(f<span class="st">"Clases: {dataset.classes}"</span>)
+    print(f<span class="st">"Muestras: {len(dataset)}"</span>)
+    print(f<span class="st">"Distribución: {dataset.class_distribution()}"</span>)
+
+    images, labels = next(iter(loader))
+    print(f<span class="st">"Batch shape: {images.shape}"</span>)   <span class="cm"># [32, 3, 224, 224]</span></pre>
+      </div>
+
+      <h3 id="s1-ide">Configuración del IDE: VS Code y PyCharm</h3>
+
+      <p>La elección del editor afecta directamente la productividad. Ambas opciones son válidas y cada una tiene sus ventajas. VS Code es más ligero y extensible; PyCharm Professional ofrece una experiencia más integrada con soporte nativo para entornos virtuales, el debugger científico y refactoring robusto.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">json</span><span class="code-filename">.vscode/settings.json</span></div>
+        <pre>{
+    <span class="st">"python.defaultInterpreterPath"</span>: <span class="st">"${workspaceFolder}/.venv/bin/python"</span>,
+    <span class="st">"python.analysis.typeCheckingMode"</span>: <span class="st">"basic"</span>,
+    <span class="st">"editor.formatOnSave"</span>: <span class="kw">true</span>,
+    <span class="st">"[python]"</span>: {
+        <span class="st">"editor.defaultFormatter"</span>: <span class="st">"ms-python.black-formatter"</span>,
+        <span class="st">"editor.codeActionsOnSave"</span>: {
+            <span class="st">"source.organizeImports"</span>: <span class="st">"always"</span>
+        }
+    },
+    <span class="st">"python.testing.pytestEnabled"</span>: <span class="kw">true</span>,
+    <span class="st">"python.testing.pytestArgs"</span>: [<span class="st">"tests"</span>],
+    <span class="cm">// Marcar src como raíz para que los imports funcionen</span>
+    <span class="st">"python.analysis.extraPaths"</span>: [<span class="st">"${workspaceFolder}/src"</span>],
+    <span class="cm">// Extensiones recomendadas para el equipo</span>
+    <span class="st">"extensions.recommendations"</span>: [
+        <span class="st">"ms-python.python"</span>,
+        <span class="st">"ms-python.vscode-pylance"</span>,
+        <span class="st">"ms-toolsai.jupyter"</span>,
+        <span class="st">"streetsidesoftware.code-spell-checker"</span>
+    ]
+}</pre>
+      </div>
+
+      <p>En PyCharm, el paso crítico es marcar <code>src/</code> como <em>Sources Root</em> (clic derecho → Mark Directory As) para que los imports relativos funcionen correctamente sin necesidad de instalar el paquete en modo editable.</p>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECCIÓN 2 — ETIQUETADO
+    ═══════════════════════════════════════════ -->
+    <section class="section" id="s2">
+      <div class="time-badge">30 min</div>
+      <div class="section-header">
+        <span class="section-num">02</span>
+        <h2>Etiquetado de datos con Label Studio</h2>
+      </div>
+      <p class="section-intro">Los datos son la materia prima del aprendizaje supervisado. La calidad de las anotaciones determina el techo del modelo. Un buen pipeline de etiquetado es tan importante como una buena arquitectura.</p>
+
+      <p>En la mayoría de los proyectos reales el cuello de botella no es el modelo sino los datos etiquetados. Conseguir imágenes es relativamente fácil; conseguir anotaciones precisas, consistentes y auditables es costoso y complejo. Las herramientas de etiquetado asistido por IA han cambiado radicalmente este panorama en los últimos dos años.</p>
+
+      <h3 id="s2-label">Label Studio: instalación y flujo de trabajo</h3>
+
+      <p><strong>Label Studio</strong> es una herramienta open-source que soporta clasificación, detección de objetos (bounding boxes), segmentación semántica, segmentación de instancias, keypoints, y tareas multimodales texto-imagen. Puede correr localmente o en servidor y exporta a múltiples formatos estándar.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">bash</span><span class="code-filename">terminal</span></div>
+        <pre><span class="cm"># Instalación</span>
+pip install label-studio
+
+<span class="cm"># Arrancar el servidor (abre http://localhost:8080)</span>
+label-studio start
+
+<span class="cm"># Con Docker (recomendado para equipos)</span>
+docker run -it -p 8080:8080 \
+  -v $(pwd)/label_studio_data:/label-studio/data \
+  heartexlabs/label-studio:latest</pre>
+      </div>
+
+      <p>El flujo de trabajo básico en Label Studio es el siguiente: se crea un proyecto, se define la plantilla de etiquetado (qué tipo de tarea y qué clases), se importan las imágenes (desde disco, S3, GCS o URL), se distribuyen las tareas entre anotadores y se exporta en el formato deseado. Las plantillas se definen en un pequeño XML que describe la interfaz de anotación.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">xml</span><span class="code-filename">Plantilla de detección de objetos (Label Studio)</span></div>
+        <pre><span class="cm">&lt;!-- Plantilla para bounding boxes con múltiples clases --&gt;</span>
+&lt;<span class="cl">View</span>&gt;
+  &lt;<span class="cl">Image</span> name=<span class="st">"image"</span> value=<span class="st">"$image"</span> zoom=<span class="st">"true"</span> /&gt;
+  &lt;<span class="cl">RectangleLabels</span> name=<span class="st">"label"</span> toName=<span class="st">"image"</span>&gt;
+    &lt;<span class="cl">Label</span> value=<span class="st">"Persona"</span>    background=<span class="st">"#1E90FF"</span> /&gt;
+    &lt;<span class="cl">Label</span> value=<span class="st">"Vehiculo"</span>   background=<span class="st">"#FF6347"</span> /&gt;
+    &lt;<span class="cl">Label</span> value=<span class="st">"Semaforo"</span>   background=<span class="st">"#32CD32"</span> /&gt;
+    &lt;<span class="cl">Label</span> value=<span class="st">"Señal"</span>      background=<span class="st">"#FFD700"</span> /&gt;
+  &lt;/<span class="cl">RectangleLabels</span>&gt;
+&lt;/<span class="cl">View</span>&gt;</pre>
+      </div>
+
+      <div class="tip">
+        <span class="callout-label">Etiquetado asistido por IA</span>
+        Label Studio permite integrar modelos de ML como backend para pre-anotar imágenes automáticamente. El anotador humano solo revisa y corrige las predicciones, reduciendo el tiempo por imagen en un 60–80%. Se puede conectar un modelo YOLO local o usar la integración con SAM para segmentación con un click.
+      </div>
+
+      <h3 id="s2-formatos">Formatos de anotación estándar</h3>
+
+      <p>El ecosistema de visión por computador no tiene un único formato universal. Cada familia de herramientas y modelos tiene su propio estándar. Entender las diferencias y saber convertir entre ellos es una habilidad práctica esencial.</p>
+
+      <table>
+        <thead>
+          <tr><th>Formato</th><th>Uso principal</th><th>Estructura</th><th>Notas</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>COCO JSON</strong></td>
+            <td>Detección, segmentación de instancias</td>
+            <td>Un único JSON con images, annotations, categories</td>
+            <td>Estándar de facto para benchmarks de investigación</td>
+          </tr>
+          <tr>
+            <td><strong>YOLO TXT</strong></td>
+            <td>Detección</td>
+            <td>Un .txt por imagen. Cada línea: class cx cy w h (normalizados 0–1)</td>
+            <td>Simple, rápido de parsear, preferido para entrenamiento YOLO</td>
+          </tr>
+          <tr>
+            <td><strong>Pascal VOC XML</strong></td>
+            <td>Detección (legado)</td>
+            <td>Un XML por imagen con coordenadas absolutas en píxeles</td>
+            <td>Usado en datasets históricos (ImageNet, VOC 2012)</td>
+          </tr>
+          <tr>
+            <td><strong>LabelMe JSON</strong></td>
+            <td>Segmentación de polígonos</td>
+            <td>Un JSON por imagen con polígonos por objeto</td>
+            <td>Fácil de usar, exportable a COCO</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">Lectura de anotaciones COCO</span></div>
+        <pre><span class="kw">import</span> json
+<span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cl">Path</span>
+<span class="kw">from</span> collections <span class="kw">import</span> defaultdict
+
+<span class="kw">class</span> <span class="cl">COCOAnnotations</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, ann_path: str):
+        <span class="kw">with</span> open(ann_path) <span class="kw">as</span> f:
+            data = json.load(f)
+
+        <span class="cm"># Índices para acceso eficiente</span>
+        self.images = {img[<span class="st">"id"</span>]: img <span class="kw">for</span> img <span class="kw">in</span> data[<span class="st">"images"</span>]}
+        self.categories = {cat[<span class="st">"id"</span>]: cat[<span class="st">"name"</span>] <span class="kw">for</span> cat <span class="kw">in</span> data[<span class="st">"categories"</span>]}
+
+        <span class="cm"># image_id -> lista de anotaciones</span>
+        self.img_to_anns = defaultdict(list)
+        <span class="kw">for</span> ann <span class="kw">in</span> data.get(<span class="st">"annotations"</span>, []):
+            self.img_to_anns[ann[<span class="st">"image_id"</span>]].append(ann)
+
+    <span class="kw">def</span> <span class="fn">get_boxes</span>(self, image_id: int):
+        <span class="st">"""Retorna lista de (x1, y1, x2, y2, class_name)."""</span>
+        boxes = []
+        <span class="kw">for</span> ann <span class="kw">in</span> self.img_to_anns[image_id]:
+            x, y, w, h = ann[<span class="st">"bbox"</span>]              <span class="cm"># formato COCO: x,y,w,h</span>
+            cls_name = self.categories[ann[<span class="st">"category_id"</span>]]
+            boxes.append((x, y, x + w, y + h, cls_name))
+        <span class="kw">return</span> boxes</pre>
+      </div>
+
+      <h3 id="s2-split">Train / Validation / Test: el contrato estadístico</h3>
+
+      <p>La partición de datos no es un trámite, es un contrato estadístico. El set de <strong>test</strong> simula el mundo real y solo puede usarse una vez: al final, para reportar resultados. Usarlo durante el desarrollo introduce un sesgo de selección que infla artificialmente las métricas. El set de <strong>validación</strong> se usa durante el entrenamiento para ajustar hiperparámetros y decidir cuándo parar.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">src/datasets/split.py</span></div>
+        <pre><span class="kw">import</span> shutil
+<span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cl">Path</span>
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+
+<span class="kw">def</span> <span class="fn">split_dataset_stratified</span>(
+    root: str,
+    output: str,
+    val_ratio: float = <span class="nu">0.15</span>,
+    test_ratio: float = <span class="nu">0.15</span>,
+    seed: int = <span class="nu">42</span>
+):
+    <span class="st">"""
+    Divide un dataset con estructura class/image.jpg en
+    train/val/test manteniendo la distribución de clases
+    (split estratificado).
+    """</span>
+    root_p = <span class="cl">Path</span>(root)
+    out_p  = <span class="cl">Path</span>(output)
+
+    all_images, all_labels = [], []
+    <span class="kw">for</span> cls_dir <span class="kw">in</span> sorted(root_p.iterdir()):
+        <span class="kw">if not</span> cls_dir.is_dir(): <span class="kw">continue</span>
+        <span class="kw">for</span> img <span class="kw">in</span> cls_dir.glob(<span class="st">"*.[jp][np][gg]*"</span>):
+            all_images.append(img)
+            all_labels.append(cls_dir.name)
+
+    <span class="cm"># Primer split: separar test del resto</span>
+    X_dev, X_test, y_dev, y_test = train_test_split(
+        all_images, all_labels,
+        test_size=test_ratio,
+        stratify=all_labels,
+        random_state=seed
+    )
+
+    <span class="cm"># Segundo split: separar val de train</span>
+    val_frac_adjusted = val_ratio / (<span class="nu">1.0</span> - test_ratio)
+    X_train, X_val, _, _ = train_test_split(
+        X_dev, y_dev,
+        test_size=val_frac_adjusted,
+        stratify=y_dev,
+        random_state=seed
+    )
+
+    <span class="kw">for</span> split_name, split_imgs <span class="kw">in</span> [(
+        <span class="st">"train"</span>, X_train), (<span class="st">"val"</span>, X_val), (<span class="st">"test"</span>, X_test)]:
+        <span class="kw">for</span> img_path <span class="kw">in</span> split_imgs:
+            dest = out_p / split_name / img_path.parent.name
+            dest.mkdir(parents=<span class="kw">True</span>, exist_ok=<span class="kw">True</span>)
+            shutil.copy2(img_path, dest / img_path.name)
+
+    print(<span class="st">f"Train: {len(X_train)} | Val: {len(X_val)} | Test: {len(X_test)}"</span>)</pre>
+      </div>
+
+      <div class="warning">
+        <span class="callout-label">Data leakage</span>
+        Si las mismas imágenes o imágenes muy similares (burst fotográfico, mismo paciente, misma escena) aparecen en train y test, el modelo parece generalizar cuando en realidad ha memorizado. En datasets médicos o de vigilancia esto es especialmente crítico. Asegúrate de hacer el split a nivel de entidad (paciente, localización, sesión) y no a nivel de imagen individual.
+      </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECCIÓN 3 — REDES NEURONALES CONV.
+    ═══════════════════════════════════════════ -->
+    <section class="section" id="s3">
+      <div class="time-badge">60 min</div>
+      <div class="section-header">
+        <span class="section-num">03</span>
+        <h2>Redes Neuronales Convolucionales desde cero</h2>
+      </div>
+      <p class="section-intro">Antes de usar ResNet50 con dos líneas de código, hay que entender qué ocurre matemáticamente dentro de una red convolucional. Esta sección construye la intuición desde los primeros principios.</p>
+
+      <h3 id="s3-perceptron">Del perceptrón a la red densa</h3>
+
+      <p>Una neurona artificial recibe un vector de entradas, calcula una suma ponderada y aplica una función de activación no lineal. Para una imagen de 224×224 píxeles en RGB, el vector de entrada tiene 224×224×3 = 150.528 valores. Una capa densa que conecte esa entrada con 1.000 neuronas ocultas necesita 150.528.000 parámetros solo para esa capa. Este planteamiento no escala y, peor aún, destruye toda la estructura espacial de la imagen.</p>
+
+      <div class="formula">
+        z = W · x + b &nbsp;&nbsp;&nbsp; y = σ(z)
+        <br><small style="color: var(--blue-300); font-size: 0.75rem;">W ∈ ℝ^(n_out × n_in) &nbsp;·&nbsp; x ∈ ℝ^n_in &nbsp;·&nbsp; b ∈ ℝ^n_out</small>
+      </div>
+
+      <p>Las CNNs resuelven ambos problemas mediante dos ideas fundamentales: <strong>compartición de pesos</strong> (un mismo filtro se aplica a toda la imagen) e <strong>conectividad local</strong> (cada neurona solo ve una región pequeña de la entrada). Estas dos restricciones reducen dramáticamente el número de parámetros e incorporan inductive bias espacial: la convicción de que los patrones visuales son independientes de su posición en la imagen.</p>
+
+      <h3 id="s3-conv">La operación de convolución discreta</h3>
+
+      <p>Una convolución 2D aplica un filtro (kernel) de tamaño k×k sobre cada posición de la imagen. Para cada posición se calcula el producto escalar entre el kernel y el parche local de la imagen. El resultado es un mapa de activaciones (feature map) que codifica la presencia y magnitud de la característica que detecta ese filtro.</p>
+
+      <div class="formula">
+        (I * K)[i,j] = Σ_m Σ_n  I[i+m, j+n] · K[m,n]
+        <br><small style="color: var(--blue-300); font-size: 0.75rem;">I: imagen de entrada &nbsp;·&nbsp; K: kernel &nbsp;·&nbsp; i,j: posición en el feature map</small>
+      </div>
+
+      <p>Un filtro de detección de bordes horizontales podría tener la forma:</p>
+
+      <div class="diagram">
+  Sobel horizontal (3×3):
+  ┌──────────────────────┐
+  │  -1   -2   -1        │
+  │   0    0    0        │
+  │   1    2    1        │
+  └──────────────────────┘
+  La red aprende estos filtros automáticamente mediante backpropagation.</div>
+
+      <p>En la práctica, una capa convolucional aplica simultáneamente <em>C_out</em> filtros distintos sobre los <em>C_in</em> canales de entrada. Cada filtro produce un feature map, y la salida de la capa es el stack de todos los feature maps.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">Convolución manual con NumPy (para entender)</span></div>
+        <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">conv2d_naive</span>(image: np.ndarray, kernel: np.ndarray, stride: int = <span class="nu">1</span>, pad: int = <span class="nu">0</span>) -> np.ndarray:
+    <span class="st">"""
+    Convolución 2D sin optimización. Solo para un canal.
+    image:  (H, W)
+    kernel: (kH, kW)
+    """</span>
+    H, W = image.shape
+    kH, kW = kernel.shape
+
+    <span class="cm"># Padding con ceros</span>
+    <span class="kw">if</span> pad > <span class="nu">0</span>:
+        image = np.pad(image, pad, mode=<span class="st">"constant"</span>, constant_values=<span class="nu">0</span>)
+        H_p, W_p = image.shape
+    <span class="kw">else</span>:
+        H_p, W_p = H, W
+
+    <span class="cm"># Dimensiones del feature map de salida</span>
+    out_H = (H_p - kH) // stride + <span class="nu">1</span>
+    out_W = (W_p - kW) // stride + <span class="nu">1</span>
+    output = np.zeros((out_H, out_W))
+
+    <span class="kw">for</span> i <span class="kw">in</span> range(<span class="nu">0</span>, out_H):
+        <span class="kw">for</span> j <span class="kw">in</span> range(<span class="nu">0</span>, out_W):
+            patch = image[i*stride : i*stride+kH, j*stride : j*stride+kW]
+            output[i, j] = np.sum(patch * kernel)
+
+    <span class="kw">return</span> output
+
+<span class="cm"># Ejemplo: detectar bordes horizontales con el filtro Sobel</span>
+imagen = np.array([
+    [<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>],
+    [<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>],
+    [<span class="nu">1</span>, <span class="nu">1</span>, <span class="nu">1</span>, <span class="nu">1</span>, <span class="nu">1</span>],    <span class="cm"># borde horizontal</span>
+    [<span class="nu">1</span>, <span class="nu">1</span>, <span class="nu">1</span>, <span class="nu">1</span>, <span class="nu">1</span>],
+    [<span class="nu">1</span>, <span class="nu">1</span>, <span class="nu">1</span>, <span class="nu">1</span>, <span class="nu">1</span>],
+], dtype=float)
+
+sobel_h = np.array([[-<span class="nu">1</span>,-<span class="nu">2</span>,-<span class="nu">1</span>],[<span class="nu">0</span>,<span class="nu">0</span>,<span class="nu">0</span>],[<span class="nu">1</span>,<span class="nu">2</span>,<span class="nu">1</span>]])
+resultado = conv2d_naive(imagen, sobel_h, stride=<span class="nu">1</span>, pad=<span class="nu">1</span>)
+print(resultado)
+<span class="cm"># La fila del borde tendrá valores altos; el resto, bajos.</span></pre>
+      </div>
+
+      <h3 id="s3-pooling">Pooling y funciones de activación</h3>
+
+      <p>El <strong>max pooling</strong> reduce la resolución espacial del feature map tomando el máximo en ventanas de k×k. Esto consigue dos cosas: reduce el costo computacional de las capas siguientes e introduce invarianza a pequeñas traslaciones (si un patrón se desplaza un par de píxeles, el máximo de la ventana puede seguir siendo el mismo).</p>
+
+      <div class="formula">
+        MaxPool(F)[i,j] = max { F[i·s+m, j·s+n]  |  0 ≤ m,n &lt; k }
+        <br><small style="color: var(--blue-300); font-size: 0.75rem;">s: stride del pooling &nbsp;·&nbsp; k: tamaño de ventana</small>
+      </div>
+
+      <p>La función de activación introduce la no-linealidad que hace que una red de múltiples capas sea más expresiva que una sola capa lineal. La <strong>ReLU</strong> (Rectified Linear Unit) es el estándar actual en CNNs por su simplicidad y porque no sufre del problema del gradiente evanescente tan severamente como la sigmoide o la tanh.</p>
+
+      <div class="arch-card">
+        <div class="arch-item">
+          <div class="layer-name">ReLU</div>
+          <div class="layer-desc">f(x) = max(0, x). Rápida, no satura para valores positivos. Puede causar "neuronas muertas".</div>
+        </div>
+        <div class="arch-item">
+          <div class="layer-name">GELU</div>
+          <div class="layer-desc">f(x) = x·Φ(x). Suavizada, preferida en Transformers. Permite gradientes pequeños para x negativo.</div>
+        </div>
+        <div class="arch-item">
+          <div class="layer-name">SiLU / Swish</div>
+          <div class="layer-desc">f(x) = x·σ(x). Usada en EfficientNet y YOLO moderno. Rendimiento empírico superior a ReLU.</div>
+        </div>
+        <div class="arch-item">
+          <div class="layer-name">Softmax</div>
+          <div class="layer-desc">Solo en la última capa (clasificación). Convierte logits en distribución de probabilidad.</div>
+        </div>
+      </div>
+
+      <h3 id="s3-full">Anatomía de una CNN completa</h3>
+
+      <p>Una CNN completa para clasificación tiene dos partes claramente diferenciadas. El <strong>backbone</strong> (encoder) extrae características jerárquicas: las primeras capas detectan bordes y texturas, las capas intermedias detectan formas y partes de objetos, las capas profundas codifican conceptos semánticos. La <strong>cabeza de clasificación</strong> (head) toma esas representaciones y produce las probabilidades finales.</p>
+
+      <div class="diagram">
+  Entrada          Backbone (feature extraction)         Head
+  ─────────────────────────────────────────────────────────────
+  [224×224×3]
+       │
+       ▼
+  Conv(64, 3×3)  → [224×224×64]   ← bordes, colores
+  ReLU + MaxPool → [112×112×64]
+       │
+  Conv(128, 3×3) → [112×112×128]  ← texturas simples
+  ReLU + MaxPool → [56×56×128]
+       │
+  Conv(256, 3×3) → [56×56×256]   ← patrones locales
+  ReLU + MaxPool → [28×28×256]
+       │
+  Conv(512, 3×3) → [28×28×512]   ← partes de objetos
+  ReLU + MaxPool → [14×14×512]
+       │
+  GlobalAvgPool  → [512]          ← representación global
+       │
+  Linear(512→256) + ReLU + Dropout(0.5)
+       │
+  Linear(256→N_classes)
+       │
+  Softmax        → [N_classes probabilidades]</div>
+
+      <h3 id="s3-backprop">Backpropagation: el motor del aprendizaje</h3>
+
+      <p>La red aprende ajustando sus pesos para minimizar una función de pérdida. El algoritmo que hace esto posible es la <strong>backpropagation</strong>, que aplica la regla de la cadena del cálculo diferencial para computar el gradiente de la pérdida respecto a cada parámetro de la red.</p>
+
+      <div class="formula">
+        L = CrossEntropy(ŷ, y) = -Σ_c  y_c · log(ŷ_c)
+        <br><br>
+        ∂L/∂W_l = ∂L/∂a_l · ∂a_l/∂W_l
+        <br><small style="color: var(--blue-300); font-size: 0.75rem;">El gradiente fluye hacia atrás a través de todas las capas</small>
+      </div>
+
+      <p>PyTorch implementa esto mediante <strong>autograd</strong>: un motor de diferenciación automática que registra todas las operaciones en un grafo computacional y calcula los gradientes de forma eficiente. El programador nunca necesita derivar manualmente.</p>
+
+      <h3 id="s3-codigo">Implementación de una CNN en PyTorch</h3>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">src/models/cnn.py</span></div>
+        <pre><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="cl">List</span>
+
+
+<span class="kw">class</span> <span class="cl">ConvBlock</span>(nn.<span class="cl">Module</span>):
+    <span class="st">"""
+    Bloque básico: Convolución → BatchNorm → Activación.
+    BatchNorm estabiliza el entrenamiento al normalizar
+    las activaciones de cada mini-batch.
+    """</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, in_ch: int, out_ch: int, kernel_size: int = <span class="nu">3</span>,
+                 stride: int = <span class="nu">1</span>, padding: int = <span class="nu">1</span>):
+        super().__init__()
+        self.conv = nn.<span class="cl">Conv2d</span>(in_ch, out_ch, kernel_size,
+                              stride=stride, padding=padding, bias=<span class="kw">False</span>)
+        self.bn   = nn.<span class="cl">BatchNorm2d</span>(out_ch)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x: torch.<span class="cl">Tensor</span>) -> torch.<span class="cl">Tensor</span>:
+        <span class="kw">return</span> F.relu(self.bn(self.conv(x)), inplace=<span class="kw">True</span>)
+
+
+<span class="kw">class</span> <span class="cl">SimpleCNN</span>(nn.<span class="cl">Module</span>):
+    <span class="st">"""
+    CNN de referencia para clasificación.
+    Parámetros:
+        num_classes: número de categorías a predecir
+        channels:    número de filtros en cada bloque convolucional
+        dropout:     probabilidad de dropout antes de la capa final
+    """</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(
+        self,
+        num_classes: int = <span class="nu">10</span>,
+        channels: <span class="cl">List</span>[int] = [<span class="nu">32</span>, <span class="nu">64</span>, <span class="nu">128</span>, <span class="nu">256</span>],
+        dropout: float = <span class="nu">0.5</span>
+    ):
+        super().__init__()
+        layers = []
+        in_ch = <span class="nu">3</span>
+        <span class="kw">for</span> out_ch <span class="kw">in</span> channels:
+            layers += [
+                <span class="cl">ConvBlock</span>(in_ch, out_ch),
+                nn.<span class="cl">MaxPool2d</span>(<span class="nu">2</span>, <span class="nu">2</span>)  <span class="cm"># reduce H y W a la mitad</span>
+            ]
+            in_ch = out_ch
+
+        self.backbone = nn.<span class="cl">Sequential</span>(*layers)
+        self.pool     = nn.<span class="cl">AdaptiveAvgPool2d</span>((<span class="nu">1</span>, <span class="nu">1</span>))  <span class="cm"># → [B, C, 1, 1]</span>
+        self.head     = nn.<span class="cl">Sequential</span>(
+            nn.<span class="cl">Dropout</span>(dropout),
+            nn.<span class="cl">Linear</span>(channels[-<span class="nu">1</span>], num_classes)
+        )
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x: torch.<span class="cl">Tensor</span>) -> torch.<span class="cl">Tensor</span>:
+        x = self.backbone(x)              <span class="cm"># [B, 256, H/16, W/16]</span>
+        x = self.pool(x).flatten(<span class="nu">1</span>)      <span class="cm"># [B, 256]</span>
+        <span class="kw">return</span> self.head(x)               <span class="cm"># [B, num_classes]</span>
+
+    <span class="kw">def</span> <span class="fn">count_parameters</span>(self) -> int:
+        <span class="kw">return</span> sum(p.numel() <span class="kw">for</span> p <span class="kw">in</span> self.parameters() <span class="kw">if</span> p.requires_grad)
+
+
+<span class="cm"># Verificación rápida</span>
+<span class="kw">if</span> __name__ == <span class="st">"__main__"</span>:
+    model = <span class="cl">SimpleCNN</span>(num_classes=<span class="nu">10</span>)
+    x     = torch.randn(<span class="nu">4</span>, <span class="nu">3</span>, <span class="nu">224</span>, <span class="nu">224</span>)  <span class="cm"># batch de 4 imágenes</span>
+    out   = model(x)
+    print(f<span class="st">"Input:  {x.shape}"</span>)            <span class="cm"># [4, 3, 224, 224]</span>
+    print(f<span class="st">"Output: {out.shape}"</span>)          <span class="cm"># [4, 10]</span>
+    print(f<span class="st">"Parámetros: {model.count_parameters():,}"</span>)</pre>
+      </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECCIÓN 4 — ARQUITECTURAS CLÁSICAS
+    ═══════════════════════════════════════════ -->
+    <section class="section" id="s4">
+      <div class="time-badge">40 min</div>
+      <div class="section-header">
+        <span class="section-num">04</span>
+        <h2>Evolución de las arquitecturas CNN</h2>
+      </div>
+      <p class="section-intro">Cada arquitectura que vemos aquí resolvió un problema específico que limitaba las redes anteriores. Entender estos problemas y sus soluciones es entender el progreso del campo.</p>
+
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-year">1998</div>
+          <div class="tl-title">LeNet-5 — LeCun et al.</div>
+          <div class="tl-desc">Primera CNN práctica para reconocimiento de dígitos (MNIST). 60.000 parámetros. Demostró el concepto de capas convolucionales aprendibles, pero la potencia computacional de la época limitó su adopción.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2012</div>
+          <div class="tl-title">AlexNet — Krizhevsky, Sutskever, Hinton</div>
+          <div class="tl-desc">Ganó ImageNet 2012 reduciendo el error top-5 del 26% al 15%. 60M parámetros. Primera red en usar ReLU, Dropout, Data Augmentation y entrenamiento sobre GPU (CUDA). Inicio de la era del deep learning en visión.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2014</div>
+          <div class="tl-title">VGGNet — Oxford Visual Geometry Group</div>
+          <div class="tl-desc">Demostró que la profundidad importa usando exclusivamente filtros 3×3. VGG-16 y VGG-19 se convirtieron en la arquitectura base de transferencia de conocimiento durante años. Hasta 138M parámetros. Costosa en memoria.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2015</div>
+          <div class="tl-title">ResNet — He et al. (Microsoft Research)</div>
+          <div class="tl-desc">Introdujo las conexiones residuales (skip connections) que permiten entrenar redes de 100 a 1000 capas. Ganó ImageNet 2015 con error top-5 de 3.57%, por debajo del humano (5%). Arquitectura que sigue siendo referencia hasta hoy.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2019</div>
+          <div class="tl-title">EfficientNet — Tan &amp; Le (Google Brain)</div>
+          <div class="tl-desc">Escalado conjunto de profundidad, ancho y resolución mediante un coeficiente compuesto. EfficientNet-B7 superó las redes anteriores con 8× menos parámetros. Introdujo el concepto de escalado eficiente como principio de diseño.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2020+</div>
+          <div class="tl-title">Transformers invaden la visión</div>
+          <div class="tl-desc">ViT, DeiT, Swin Transformer, ConvNeXt. Las fronteras entre CNNs y Transformers se difuminan. El estado del arte en ImageNet ya no está dominado por CNNs puras.</div>
+        </div>
+      </div>
+
+      <h3 id="s4-resnet">ResNet: las conexiones residuales en detalle</h3>
+
+      <p>El problema que ResNet resuelve es el del <strong>gradiente evanescente</strong> en redes muy profundas. Al aplicar la regla de la cadena sobre decenas de capas, los gradientes pueden hacerse exponencialmente pequeños, impidiendo que las capas iniciales aprendan. La solución es elegante: en lugar de aprender la función completa H(x), las capas aprenden la función residual F(x) = H(x) − x, y el resultado final es F(x) + x.</p>
+
+      <div class="formula">
+        output = F(x, {W_i}) + x
+        <br><small style="color: var(--blue-300); font-size: 0.75rem;">Si la transformación óptima fuera la identidad, la red solo necesita llevar F(x) → 0</small>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">src/models/resnet.py — Bloque residual básico</span></div>
+        <pre><span class="kw">class</span> <span class="cl">ResidualBlock</span>(nn.<span class="cl">Module</span>):
+    <span class="st">"""
+    Bloque residual de ResNet-18/34.
+    Si in_ch != out_ch, se usa una convolución 1×1 (projection shortcut)
+    para igualar dimensiones antes de la suma.
+    """</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, in_ch: int, out_ch: int, stride: int = <span class="nu">1</span>):
+        super().__init__()
+        self.conv1 = nn.<span class="cl">Conv2d</span>(in_ch, out_ch, <span class="nu">3</span>, stride=stride, padding=<span class="nu">1</span>, bias=<span class="kw">False</span>)
+        self.bn1   = nn.<span class="cl">BatchNorm2d</span>(out_ch)
+        self.conv2 = nn.<span class="cl">Conv2d</span>(out_ch, out_ch, <span class="nu">3</span>, padding=<span class="nu">1</span>, bias=<span class="kw">False</span>)
+        self.bn2   = nn.<span class="cl">BatchNorm2d</span>(out_ch)
+
+        <span class="cm"># Shortcut: proyección si cambian las dimensiones</span>
+        self.shortcut = nn.<span class="cl">Sequential</span>()
+        <span class="kw">if</span> stride != <span class="nu">1</span> <span class="kw">or</span> in_ch != out_ch:
+            self.shortcut = nn.<span class="cl">Sequential</span>(
+                nn.<span class="cl">Conv2d</span>(in_ch, out_ch, <span class="nu">1</span>, stride=stride, bias=<span class="kw">False</span>),
+                nn.<span class="cl">BatchNorm2d</span>(out_ch)
+            )
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x: torch.<span class="cl">Tensor</span>) -> torch.<span class="cl">Tensor</span>:
+        residual = self.shortcut(x)                 <span class="cm"># identidad o proyección</span>
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        out = F.relu(out + residual)                <span class="cm"># conexión residual</span>
+        <span class="kw">return</span> out
+
+
+<span class="kw">class</span> <span class="cl">ResNet18</span>(nn.<span class="cl">Module</span>):
+    <span class="st">"""Implementación simplificada de ResNet-18."""</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, num_classes: int = <span class="nu">1000</span>):
+        super().__init__()
+        <span class="cm"># Stem: primera capa con stride 2</span>
+        self.stem = nn.<span class="cl">Sequential</span>(
+            nn.<span class="cl">Conv2d</span>(<span class="nu">3</span>, <span class="nu">64</span>, <span class="nu">7</span>, stride=<span class="nu">2</span>, padding=<span class="nu">3</span>, bias=<span class="kw">False</span>),
+            nn.<span class="cl">BatchNorm2d</span>(<span class="nu">64</span>),
+            nn.<span class="cl">ReLU</span>(inplace=<span class="kw">True</span>),
+            nn.<span class="cl">MaxPool2d</span>(<span class="nu">3</span>, stride=<span class="nu">2</span>, padding=<span class="nu">1</span>)
+        )
+        <span class="cm"># 4 etapas de bloques residuales</span>
+        self.layer1 = self._make_layer(<span class="nu">64</span>,  <span class="nu">64</span>,  n=<span class="nu">2</span>, stride=<span class="nu">1</span>)
+        self.layer2 = self._make_layer(<span class="nu">64</span>,  <span class="nu">128</span>, n=<span class="nu">2</span>, stride=<span class="nu">2</span>)
+        self.layer3 = self._make_layer(<span class="nu">128</span>, <span class="nu">256</span>, n=<span class="nu">2</span>, stride=<span class="nu">2</span>)
+        self.layer4 = self._make_layer(<span class="nu">256</span>, <span class="nu">512</span>, n=<span class="nu">2</span>, stride=<span class="nu">2</span>)
+        self.pool   = nn.<span class="cl">AdaptiveAvgPool2d</span>((<span class="nu">1</span>, <span class="nu">1</span>))
+        self.fc     = nn.<span class="cl">Linear</span>(<span class="nu">512</span>, num_classes)
+
+    <span class="kw">def</span> <span class="fn">_make_layer</span>(self, in_ch, out_ch, n, stride):
+        layers = [<span class="cl">ResidualBlock</span>(in_ch, out_ch, stride=stride)]
+        <span class="kw">for</span> _ <span class="kw">in</span> range(<span class="nu">1</span>, n):
+            layers.append(<span class="cl">ResidualBlock</span>(out_ch, out_ch))
+        <span class="kw">return</span> nn.<span class="cl">Sequential</span>(*layers)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        x = self.stem(x)
+        x = self.layer1(x); x = self.layer2(x)
+        x = self.layer3(x); x = self.layer4(x)
+        x = self.pool(x).flatten(<span class="nu">1</span>)
+        <span class="kw">return</span> self.fc(x)</pre>
+      </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECCIÓN 5 — ENTRENAMIENTO
+    ═══════════════════════════════════════════ -->
+    <section class="section" id="s5">
+      <div class="time-badge">50 min</div>
+      <div class="section-header">
+        <span class="section-num">05</span>
+        <h2>Pipeline de entrenamiento completo</h2>
+      </div>
+      <p class="section-intro">Un buen loop de entrenamiento es reproducible, monitorizable y resistente a fallos. Esta sección construye el trainer que usaremos en el resto de la sesión.</p>
+
+      <h3 id="s5-loop">El loop de entrenamiento</h3>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">src/training/trainer.py</span></div>
+        <pre><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">from</span> torch.utils.data <span class="kw">import</span> <span class="cl">DataLoader</span>
+<span class="kw">from</span> torch.optim.lr_scheduler <span class="kw">import</span> <span class="cl">CosineAnnealingLR</span>
+<span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cl">Path</span>
+<span class="kw">import</span> wandb
+
+
+<span class="kw">class</span> <span class="cl">Trainer</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(
+        self,
+        model: nn.<span class="cl">Module</span>,
+        train_loader: <span class="cl">DataLoader</span>,
+        val_loader: <span class="cl">DataLoader</span>,
+        config: dict,
+        device: str = <span class="st">"cuda"</span>
+    ):
+        self.model  = model.to(device)
+        self.device = device
+        self.cfg    = config
+        self.train_loader = train_loader
+        self.val_loader   = val_loader
+
+        self.criterion = nn.<span class="cl">CrossEntropyLoss</span>()
+        self.optimizer = torch.optim.<span class="cl">AdamW</span>(
+            model.parameters(),
+            lr=config[<span class="st">"learning_rate"</span>],
+            weight_decay=config[<span class="st">"weight_decay"</span>]
+        )
+        self.scheduler = <span class="cl">CosineAnnealingLR</span>(
+            self.optimizer,
+            T_max=config[<span class="st">"epochs"</span>]
+        )
+        self.best_val_acc = <span class="nu">0.0</span>
+        self.save_dir = <span class="cl">Path</span>(config.get(<span class="st">"save_dir"</span>, <span class="st">"outputs/checkpoints"</span>))
+        self.save_dir.mkdir(parents=<span class="kw">True</span>, exist_ok=<span class="kw">True</span>)
+
+    <span class="kw">def</span> <span class="fn">train_epoch</span>(self) -> dict:
+        self.model.train()
+        total_loss, correct, total = <span class="nu">0.0</span>, <span class="nu">0</span>, <span class="nu">0</span>
+
+        <span class="kw">for</span> images, labels <span class="kw">in</span> self.train_loader:
+            images = images.to(self.device)
+            labels = labels.to(self.device)
+
+            self.optimizer.zero_grad()
+            logits = self.model(images)
+            loss   = self.criterion(logits, labels)
+
+            loss.backward()
+            <span class="cm"># Gradient clipping: evita explosión de gradientes</span>
+            nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=<span class="nu">1.0</span>)
+            self.optimizer.step()
+
+            total_loss += loss.item() * images.size(<span class="nu">0</span>)
+            preds       = logits.argmax(dim=<span class="nu">1</span>)
+            correct    += (preds == labels).sum().item()
+            total      += images.size(<span class="nu">0</span>)
+
+        <span class="kw">return</span> {
+            <span class="st">"loss"</span>: total_loss / total,
+            <span class="st">"acc"</span>:  correct / total
+        }
+
+    <span class="de">@torch.no_grad</span>()
+    <span class="kw">def</span> <span class="fn">val_epoch</span>(self) -> dict:
+        self.model.eval()
+        total_loss, correct, total = <span class="nu">0.0</span>, <span class="nu">0</span>, <span class="nu">0</span>
+
+        <span class="kw">for</span> images, labels <span class="kw">in</span> self.val_loader:
+            images = images.to(self.device)
+            labels = labels.to(self.device)
+            logits = self.model(images)
+            loss   = self.criterion(logits, labels)
+
+            total_loss += loss.item() * images.size(<span class="nu">0</span>)
+            preds       = logits.argmax(dim=<span class="nu">1</span>)
+            correct    += (preds == labels).sum().item()
+            total      += images.size(<span class="nu">0</span>)
+
+        <span class="kw">return</span> {
+            <span class="st">"loss"</span>: total_loss / total,
+            <span class="st">"acc"</span>:  correct / total
+        }
+
+    <span class="kw">def</span> <span class="fn">fit</span>(self):
+        <span class="st">"""Loop principal de entrenamiento con early stopping."""</span>
+        patience = self.cfg.get(<span class="st">"early_stopping_patience"</span>, <span class="nu">10</span>)
+        no_improve = <span class="nu">0</span>
+
+        <span class="kw">for</span> epoch <span class="kw">in</span> range(<span class="nu">1</span>, self.cfg[<span class="st">"epochs"</span>] + <span class="nu">1</span>):
+            train_metrics = self.train_epoch()
+            val_metrics   = self.val_epoch()
+            self.scheduler.step()
+
+            lr = self.optimizer.param_groups[<span class="nu">0</span>][<span class="st">"lr"</span>]
+            print(
+                f<span class="st">"Epoch {epoch:3d}/{self.cfg['epochs']} "</span>
+                f<span class="st">"| train_loss: {train_metrics['loss']:.4f} "</span>
+                f<span class="st">"| train_acc: {train_metrics['acc']:.4f} "</span>
+                f<span class="st">"| val_acc: {val_metrics['acc']:.4f} "</span>
+                f<span class="st">"| lr: {lr:.2e}"</span>
+            )
+
+            <span class="cm"># Guardar mejor modelo</span>
+            <span class="kw">if</span> val_metrics[<span class="st">"acc"</span>] > self.best_val_acc:
+                self.best_val_acc = val_metrics[<span class="st">"acc"</span>]
+                torch.save(self.model.state_dict(),
+                           self.save_dir / <span class="st">"best_model.pth"</span>)
+                no_improve = <span class="nu">0</span>
+            <span class="kw">else</span>:
+                no_improve += <span class="nu">1</span>
+                <span class="kw">if</span> no_improve >= patience:
+                    print(f<span class="st">"Early stopping en epoch {epoch}"</span>)
+                    <span class="kw">break</span>
+
+        print(f<span class="st">"Entrenamiento completado. Mejor val_acc: {self.best_val_acc:.4f}"</span>)</pre>
+      </div>
+
+      <h3 id="s5-augment">Data Augmentation con Albumentations</h3>
+
+      <p>El data augmentation es la técnica de regularización más efectiva en Computer Vision. Consiste en aplicar transformaciones aleatorias a las imágenes durante el entrenamiento para que el modelo vea más variedad y sea menos sensible a condiciones específicas de adquisición.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">src/datasets/transforms.py</span></div>
+        <pre><span class="kw">import</span> albumentations <span class="kw">as</span> A
+<span class="kw">from</span> albumentations.pytorch <span class="kw">import</span> <span class="cl">ToTensorV2</span>
+
+<span class="cm"># Pipeline de augmentation para entrenamiento</span>
+train_transform = A.<span class="cl">Compose</span>([
+    A.<span class="cl">RandomResizedCrop</span>(<span class="nu">224</span>, <span class="nu">224</span>, scale=(<span class="nu">0.7</span>, <span class="nu">1.0</span>)),
+    A.<span class="cl">HorizontalFlip</span>(p=<span class="nu">0.5</span>),
+    A.<span class="cl">ColorJitter</span>(brightness=<span class="nu">0.3</span>, contrast=<span class="nu">0.3</span>, saturation=<span class="nu">0.3</span>, hue=<span class="nu">0.1</span>, p=<span class="nu">0.8</span>),
+    A.<span class="cl">ToGray</span>(p=<span class="nu">0.1</span>),
+    <span class="cm"># Simulación de degradaciones del sensor</span>
+    A.<span class="cl">GaussNoise</span>(var_limit=(<span class="nu">5</span>, <span class="nu">30</span>), p=<span class="nu">0.3</span>),
+    A.<span class="cl">MotionBlur</span>(blur_limit=<span class="nu">5</span>, p=<span class="nu">0.2</span>),
+    <span class="cm"># Regularización espacial</span>
+    A.<span class="cl">CoarseDropout</span>(max_holes=<span class="nu">8</span>, max_height=<span class="nu">32</span>, max_width=<span class="nu">32</span>, p=<span class="nu">0.3</span>),
+    A.<span class="cl">ShiftScaleRotate</span>(shift_limit=<span class="nu">0.1</span>, scale_limit=<span class="nu">0.15</span>, rotate_limit=<span class="nu">15</span>, p=<span class="nu">0.5</span>),
+    <span class="cm"># Normalización ImageNet (media y std del dataset de pretraining)</span>
+    A.<span class="cl">Normalize</span>(mean=[<span class="nu">0.485</span>, <span class="nu">0.456</span>, <span class="nu">0.406</span>],
+               std=[<span class="nu">0.229</span>, <span class="nu">0.224</span>, <span class="nu">0.225</span>]),
+    <span class="cl">ToTensorV2</span>()
+])
+
+<span class="cm"># Pipeline de validación/test: sin augmentation, solo normalizar</span>
+val_transform = A.<span class="cl">Compose</span>([
+    A.<span class="cl">Resize</span>(<span class="nu">224</span>, <span class="nu">224</span>),
+    A.<span class="cl">Normalize</span>(mean=[<span class="nu">0.485</span>, <span class="nu">0.456</span>, <span class="nu">0.406</span>],
+               std=[<span class="nu">0.229</span>, <span class="nu">0.224</span>, <span class="nu">0.225</span>]),
+    <span class="cl">ToTensorV2</span>()
+])</pre>
+      </div>
+
+      <h3 id="s5-transfer">Transfer Learning: aprovechando representaciones preentrenadas</h3>
+
+      <p>Entrenar una red profunda desde cero requiere millones de imágenes y semanas de cómputo. Para la mayoría de los proyectos, el camino correcto es el <strong>transfer learning</strong>: partir de un modelo preentrenado en ImageNet (o mejor, en datasets más grandes como LAION) y ajustarlo a la tarea específica. Las representaciones aprendidas en ImageNet son genéricas y útiles para casi cualquier tarea visual.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">Transfer learning con torchvision</span></div>
+        <pre><span class="kw">import</span> torchvision.models <span class="kw">as</span> tv_models
+
+<span class="cm"># Cargar ResNet50 preentrenada en ImageNet</span>
+model = tv_models.resnet50(weights=tv_models.<span class="cl">ResNet50_Weights</span>.<span class="cl">IMAGENET1K_V2</span>)
+
+<span class="cm"># ── Estrategia 1: Fine-tuning completo ──────────────────────────</span>
+<span class="cm"># Reemplazar la cabeza y entrenar todo el modelo con LR pequeño</span>
+model.fc = nn.<span class="cl">Linear</span>(model.fc.in_features, num_classes)
+<span class="cm"># Usar LR diferencial: backbone con LR pequeño, head con LR mayor</span>
+optimizer = torch.optim.<span class="cl">AdamW</span>([
+    {<span class="st">"params"</span>: model.layer4.parameters(), <span class="st">"lr"</span>: <span class="nu">1e-4</span>},
+    {<span class="st">"params"</span>: model.fc.parameters(),     <span class="st">"lr"</span>: <span class="nu">1e-3</span>},
+], weight_decay=<span class="nu">1e-5</span>)
+
+<span class="cm"># ── Estrategia 2: Feature extraction ────────────────────────────</span>
+<span class="cm"># Congelar el backbone, solo entrenar la cabeza</span>
+<span class="kw">for</span> param <span class="kw">in</span> model.parameters():
+    param.requires_grad = <span class="kw">False</span>
+model.fc = nn.<span class="cl">Linear</span>(model.fc.in_features, num_classes)
+<span class="cm"># Solo los parámetros de fc son entrenables</span>
+optimizer = torch.optim.<span class="cl">Adam</span>(model.fc.parameters(), lr=<span class="nu">1e-3</span>)
+
+<span class="cm"># ── Estrategia 3: Progressive unfreezing (recomendada) ──────────</span>
+<span class="cm"># Época 1-5:  solo head</span>
+<span class="cm"># Época 6-15: + layer4</span>
+<span class="cm"># Época 16+:  red completa con LR muy pequeño</span></pre>
+      </div>
+
+      <h3 id="s5-eval">Métricas de evaluación</h3>
+
+      <p>La accuracy es insuficiente cuando las clases están desbalanceadas. En detección, la mAP es el estándar. Para segmentación médica, el IoU y el coeficiente Dice son métricas más informativas que el pixel accuracy.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">src/training/metrics.py</span></div>
+        <pre><span class="kw">from</span> sklearn.metrics <span class="kw">import</span> (
+    classification_report, confusion_matrix,
+    balanced_accuracy_score, roc_auc_score
+)
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> torch
+
+<span class="de">@torch.no_grad</span>()
+<span class="kw">def</span> <span class="fn">evaluate_model</span>(model, loader, device, class_names):
+    model.eval()
+    all_preds, all_labels, all_probs = [], [], []
+
+    <span class="kw">for</span> images, labels <span class="kw">in</span> loader:
+        images = images.to(device)
+        logits = model(images)
+        probs  = torch.softmax(logits, dim=<span class="nu">1</span>).cpu().numpy()
+        preds  = logits.argmax(dim=<span class="nu">1</span>).cpu().numpy()
+
+        all_preds.extend(preds)
+        all_labels.extend(labels.numpy())
+        all_probs.extend(probs)
+
+    all_preds  = np.array(all_preds)
+    all_labels = np.array(all_labels)
+    all_probs  = np.array(all_probs)
+
+    print(<span class="st">"── Reporte de clasificación ─────────────────────────────"</span>)
+    print(classification_report(all_labels, all_preds, target_names=class_names))
+    print(f<span class="st">"Balanced accuracy: {balanced_accuracy_score(all_labels, all_preds):.4f}"</span>)
+
+    <span class="cm"># AUC-ROC multiclase (One-vs-Rest)</span>
+    <span class="kw">if</span> len(class_names) > <span class="nu">2</span>:
+        auc = roc_auc_score(all_labels, all_probs, multi_class=<span class="st">"ovr"</span>)
+        print(f<span class="st">"AUC-ROC (OvR): {auc:.4f}"</span>)
+
+    <span class="kw">return</span> {
+        <span class="st">"preds"</span>: all_preds,
+        <span class="st">"labels"</span>: all_labels,
+        <span class="st">"confusion_matrix"</span>: confusion_matrix(all_labels, all_preds)
+    }</pre>
+      </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECCIÓN 6 — ATENCIÓN Y TRANSFORMERS
+    ═══════════════════════════════════════════ -->
+    <section class="section" id="s6">
+      <div class="time-badge">60 min</div>
+      <div class="section-header">
+        <span class="section-num">06</span>
+        <h2>Mecanismos de atención y Vision Transformers</h2>
+      </div>
+      <p class="section-intro">Las CNNs tienen un campo receptivo local. Para capturar relaciones de largo alcance en una imagen, un pixel de una esquina no puede "ver" directamente otro pixel en la esquina opuesta sin pasar por muchas capas. La atención resuelve esto de forma directa.</p>
+
+      <h3 id="s6-attention">El mecanismo de auto-atención</h3>
+
+      <p>La auto-atención calcula, para cada elemento de una secuencia, cuánto debe atender a cada otro elemento. La secuencia en visión puede ser una lista de parches de la imagen. Cada elemento genera tres vectores: una <strong>query</strong> (qué está buscando), una <strong>key</strong> (qué ofrece) y un <strong>value</strong> (qué información transporta). La atención de un elemento hacia otro es proporcional al producto escalar de su query con la key del otro.</p>
+
+      <div class="formula">
+        Attention(Q, K, V) = softmax( Q·Kᵀ / √d_k ) · V
+        <br><small style="color: var(--blue-300); font-size: 0.75rem;">Q, K, V ∈ ℝ^(n×d_k) &nbsp;·&nbsp; El factor √d_k estabiliza el gradiente para dimensiones altas</small>
+      </div>
+
+      <p>El resultado es que cada elemento de la secuencia obtiene una representación actualizada que es la suma ponderada de todos los values, donde los pesos de la suma son los scores de atención. Esto permite capturar dependencias globales en una sola operación, independientemente de la distancia entre elementos.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">Scaled Dot-Product Attention implementada</span></div>
+        <pre><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> math
+
+<span class="kw">class</span> <span class="cl">ScaledDotProductAttention</span>(nn.<span class="cl">Module</span>):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, dropout: float = <span class="nu">0.0</span>):
+        super().__init__()
+        self.dropout = nn.<span class="cl">Dropout</span>(dropout)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self,
+                 Q: torch.<span class="cl">Tensor</span>,   <span class="cm"># [B, heads, N, d_k]</span>
+                 K: torch.<span class="cl">Tensor</span>,   <span class="cm"># [B, heads, N, d_k]</span>
+                 V: torch.<span class="cl">Tensor</span>,   <span class="cm"># [B, heads, N, d_v]</span>
+                 mask=<span class="kw">None</span>):
+        d_k = Q.size(-<span class="nu">1</span>)
+        <span class="cm"># Scores de atención: similaridad query-key</span>
+        scores = torch.matmul(Q, K.transpose(-<span class="nu">2</span>, -<span class="nu">1</span>)) / math.sqrt(d_k)  <span class="cm"># [B, h, N, N]</span>
+
+        <span class="kw">if</span> mask <span class="kw">is not None</span>:
+            scores = scores.masked_fill(mask == <span class="nu">0</span>, -<span class="nu">1e9</span>)
+
+        attn_weights = torch.softmax(scores, dim=-<span class="nu">1</span>)    <span class="cm"># [B, h, N, N]</span>
+        attn_weights = self.dropout(attn_weights)
+
+        output = torch.matmul(attn_weights, V)             <span class="cm"># [B, h, N, d_v]</span>
+        <span class="kw">return</span> output, attn_weights
+
+
+<span class="kw">class</span> <span class="cl">MultiHeadAttention</span>(nn.<span class="cl">Module</span>):
+    <span class="st">"""
+    La multi-head attention proyecta Q, K, V en h subespac ios distintos
+    y calcula atención en cada uno. Permite atender a patrones
+    de diferentes tipos simultáneamente.
+    """</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model: int, num_heads: int, dropout: float = <span class="nu">0.0</span>):
+        super().__init__()
+        assert d_model % num_heads == <span class="nu">0</span>
+        self.d_k    = d_model // num_heads
+        self.h      = num_heads
+        self.W_q    = nn.<span class="cl">Linear</span>(d_model, d_model)
+        self.W_k    = nn.<span class="cl">Linear</span>(d_model, d_model)
+        self.W_v    = nn.<span class="cl">Linear</span>(d_model, d_model)
+        self.W_o    = nn.<span class="cl">Linear</span>(d_model, d_model)
+        self.attn   = <span class="cl">ScaledDotProductAttention</span>(dropout)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x: torch.<span class="cl">Tensor</span>):
+        B, N, _ = x.shape
+        Q = self.W_q(x).view(B, N, self.h, self.d_k).transpose(<span class="nu">1</span>, <span class="nu">2</span>)
+        K = self.W_k(x).view(B, N, self.h, self.d_k).transpose(<span class="nu">1</span>, <span class="nu">2</span>)
+        V = self.W_v(x).view(B, N, self.h, self.d_k).transpose(<span class="nu">1</span>, <span class="nu">2</span>)
+
+        out, _ = self.attn(Q, K, V)
+        out = out.transpose(<span class="nu">1</span>, <span class="nu">2</span>).contiguous().view(B, N, -<span class="nu">1</span>)
+        <span class="kw">return</span> self.W_o(out)</pre>
+      </div>
+
+      <h3 id="s6-vit">Vision Transformer (ViT)</h3>
+
+      <p>En 2020, Dosovitskiy et al. demostraron que un Transformer puro, sin ninguna componente convolucional, podía alcanzar el estado del arte en clasificación de imágenes, siempre que el modelo fuera suficientemente grande y preentrenado en datasets suficientemente grandes (JFT-300M o ImageNet-21K). La clave fue la "tokenización" de la imagen: dividirla en parches fijos de 16×16 píxeles y tratar cada parche como un token, exactamente como un Transformer de lenguaje trata las palabras.</p>
+
+      <div class="diagram">
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                  Vision Transformer (ViT)                           │
+  │                                                                     │
+  │  Imagen [224×224×3]                                                 │
+  │       │                                                             │
+  │       ▼  Dividir en parches 16×16                                   │
+  │  196 parches de [16×16×3]   (224/16 = 14 → 14×14 = 196 parches)    │
+  │       │                                                             │
+  │       ▼  Linear Projection (Patch Embedding)                        │
+  │  196 tokens de dimensión D=768                                      │
+  │       │                                                             │
+  │       ▼  Prepend [CLS] token + Positional Embedding                 │
+  │  197 tokens (1 CLS + 196 parches), cada uno D=768                   │
+  │       │                                                             │
+  │       ▼  Repetir L=12 veces:                                        │
+  │  ┌─────────────────────────────────┐                                │
+  │  │  LayerNorm                       │                               │
+  │  │  Multi-Head Self-Attention (h=12)│   ← atención global           │
+  │  │  + residual                      │                               │
+  │  │  LayerNorm                       │                               │
+  │  │  MLP (D→4D→D)                    │   ← captura features locales  │
+  │  │  + residual                      │                               │
+  │  └─────────────────────────────────┘                                │
+  │       │                                                             │
+  │       ▼  Tomar el token [CLS]                                       │
+  │  Vector [768]                                                       │
+  │       │                                                             │
+  │       ▼  MLP Head                                                   │
+  │  Logits [num_classes]                                               │
+  └─────────────────────────────────────────────────────────────────────┘</div>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">ViT con timm (uso práctico)</span></div>
+        <pre><span class="kw">import</span> timm
+<span class="kw">import</span> torch
+
+<span class="cm"># timm es la librería de referencia para modelos de visión preentrenados</span>
+<span class="cm"># Más de 700 modelos disponibles con pesos preentrenados</span>
+
+<span class="cm"># ViT-Base con parches de 16×16, preentrenado en ImageNet-21k</span>
+model = timm.create_model(
+    <span class="st">"vit_base_patch16_224"</span>,
+    pretrained=<span class="kw">True</span>,
+    num_classes=<span class="nu">10</span>
+)
+
+<span class="cm"># Consultar información del modelo</span>
+print(timm.models.model_registry.list_models(<span class="st">"vit*"</span>)[:<span class="nu">10</span>])
+
+<span class="cm"># Acceder a los mapas de atención para interpretabilidad</span>
+<span class="kw">class</span> <span class="cl">ViTWithAttention</span>(nn.<span class="cl">Module</span>):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, model_name: str = <span class="st">"vit_base_patch16_224"</span>, num_classes: int = <span class="nu">10</span>):
+        super().__init__()
+        self.vit = timm.create_model(model_name, pretrained=<span class="kw">True</span>, num_classes=num_classes)
+        self.attention_maps = []
+        <span class="cm"># Hook para capturar los pesos de atención de la última capa</span>
+        self.vit.blocks[-<span class="nu">1</span>].attn.register_forward_hook(self._save_attention)
+
+    <span class="kw">def</span> <span class="fn">_save_attention</span>(self, module, input, output):
+        <span class="cm"># output[1] son los pesos de atención en algunos modelos timm</span>
+        self.attention_maps.append(output)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        self.attention_maps = []
+        <span class="kw">return</span> self.vit(x)</pre>
+      </div>
+
+      <h3 id="s6-swin">Swin Transformer: atención en ventanas deslizantes</h3>
+
+      <p>La atención global de ViT tiene complejidad cuadrática en el número de parches: O(N²). Para imágenes de alta resolución esto es prohibitivo. El <strong>Swin Transformer</strong> (Liu et al., 2021) introduce atención en ventanas locales no solapadas y un mecanismo de ventanas desplazadas en capas alternas que permite la comunicación entre ventanas. Esto reduce la complejidad a O(N) y permite construir una arquitectura jerárquica, al igual que las CNNs, compatible con redes de detección y segmentación que necesitan feature maps de múltiples resoluciones.</p>
+
+      <div class="note">
+        <span class="callout-label">Swin vs ViT</span>
+        Swin Transformer domina las benchmarks de detección (COCO) y segmentación semántica (ADE20K) por su naturaleza jerárquica. ViT-based models (DeiT, BEiT, MAE) son más adecuados para clasificación pura. Para proyectos de detección o segmentación con recursos limitados, Swin es generalmente la mejor elección como backbone.
+      </div>
+
+      <h3 id="s6-dino">DINO y DINOv2: aprendizaje auto-supervisado</h3>
+
+      <p>Una de las limitaciones del aprendizaje supervisado es la necesidad de anotaciones. DINO (Caron et al., 2021) demostró que un ViT entrenado de forma <strong>auto-supervisada</strong>, sin ninguna etiqueta, aprende representaciones que incluyen información de segmentación semántica de forma emergente. Los mapas de atención del token CLS delimitan objetos de forma precisa sin haber visto ni una sola anotación.</p>
+
+      <p><strong>DINOv2</strong> (Oquab et al., 2023) escala este enfoque a ViT-Giant entrenado sobre 142 millones de imágenes curadas. Las representaciones resultantes son tan ricas que un simple clasificador lineal sobre las features de DINOv2 supera a modelos supervisados complejos en muchos benchmarks. Es el backbone de referencia cuando se trabaja con datos limitados.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">Uso de DINOv2 como feature extractor</span></div>
+        <pre><span class="kw">import</span> torch
+
+<span class="cm"># Cargar DINOv2 directamente desde torch.hub (Facebook Research)</span>
+dinov2 = torch.hub.load(<span class="st">"facebookresearch/dinov2"</span>, <span class="st">"dinov2_vitl14"</span>)
+dinov2.eval()
+
+<span class="cm"># Congelar el backbone</span>
+<span class="kw">for</span> param <span class="kw">in</span> dinov2.parameters():
+    param.requires_grad = <span class="kw">False</span>
+
+<span class="cm"># Extraer features</span>
+<span class="kw">with</span> torch.no_grad():
+    image = torch.randn(<span class="nu">1</span>, <span class="nu">3</span>, <span class="nu">224</span>, <span class="nu">224</span>)
+    features = dinov2(image)    <span class="cm"># [1, 1024] — representación densa de la imagen</span>
+
+<span class="cm"># Añadir una cabeza de clasificación lineal</span>
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+head = nn.<span class="cl">Linear</span>(<span class="nu">1024</span>, num_classes)  <span class="cm"># solo entrenar esta capa</span>
+logits = head(features)</pre>
+      </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECCIÓN 7 — DETECCIÓN Y SEGMENTACIÓN
+    ═══════════════════════════════════════════ -->
+    <section class="section" id="s7">
+      <div class="time-badge">45 min</div>
+      <div class="section-header">
+        <span class="section-num">07</span>
+        <h2>Detección de objetos y segmentación</h2>
+      </div>
+      <p class="section-intro">Clasificar una imagen entera es la tarea más simple. Detectar todos los objetos en una imagen con sus localizaciones y segmentarlos a nivel de píxel son tareas significativamente más complejas y más útiles para aplicaciones reales.</p>
+
+      <h3 id="s7-det">YOLO: detección en tiempo real</h3>
+
+      <p>La familia YOLO (You Only Look Once) reformula la detección de objetos como un único problema de regresión. En lugar de proponer regiones de interés y clasificarlas (como en Faster R-CNN), YOLO divide la imagen en una rejilla y predice simultáneamente bounding boxes y probabilidades de clase para cada celda. Esto lo hace extremadamente rápido y adecuado para aplicaciones en tiempo real.</p>
+
+      <p>YOLOv8 y YOLO11 (de Ultralytics) son actualmente las implementaciones más utilizadas en producción. Soportan clasificación, detección, segmentación de instancias, estimación de pose y seguimiento multi-objeto. Su API es extremadamente simple.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">Detección con YOLOv8 (Ultralytics)</span></div>
+        <pre><span class="kw">from</span> ultralytics <span class="kw">import</span> <span class="cl">YOLO</span>
+<span class="kw">import</span> cv2
+
+<span class="cm"># Cargar modelo preentrenado en COCO (80 clases)</span>
+model = <span class="cl">YOLO</span>(<span class="st">"yolov8n.pt"</span>)   <span class="cm"># n=nano, s=small, m=medium, l=large, x=xlarge</span>
+
+<span class="cm"># ── Inferencia en imagen ──────────────────────────────────────</span>
+results = model(<span class="st">"path/to/image.jpg"</span>, conf=<span class="nu">0.25</span>, iou=<span class="nu">0.45</span>)
+
+<span class="kw">for</span> r <span class="kw">in</span> results:
+    <span class="kw">for</span> box <span class="kw">in</span> r.boxes:
+        xyxy  = box.xyxy[<span class="nu">0</span>].cpu().numpy()   <span class="cm"># [x1, y1, x2, y2]</span>
+        conf  = float(box.conf[<span class="nu">0</span>])
+        cls   = int(box.cls[<span class="nu">0</span>])
+        label = model.names[cls]
+        print(f<span class="st">"{label}: {conf:.2f} @ {xyxy.astype(int)}"</span>)
+
+<span class="cm"># ── Fine-tuning en dataset propio ──────────────────────────────</span>
+model = <span class="cl">YOLO</span>(<span class="st">"yolov8s.pt"</span>)
+model.train(
+    data=<span class="st">"configs/dataset.yaml"</span>,   <span class="cm"># define rutas y clases</span>
+    epochs=<span class="nu">100</span>,
+    imgsz=<span class="nu">640</span>,
+    batch=<span class="nu">16</span>,
+    device=<span class="nu">0</span>,                       <span class="cm"># GPU 0</span>
+    project=<span class="st">"outputs"</span>,
+    name=<span class="st">"yolov8s_custom"</span>
+)
+
+<span class="cm"># Estructura del dataset.yaml (formato YOLO)</span>
+<span class="st">"""
+path: data/
+train: train/images
+val:   val/images
+test:  test/images
+
+nc: 3                   # número de clases
+names: [persona, coche, bicicleta]
+"""</span>
+
+<span class="cm"># ── Inferencia en vídeo ───────────────────────────────────────</span>
+model = <span class="cl">YOLO</span>(<span class="st">"runs/detect/yolov8s_custom/weights/best.pt"</span>)
+<span class="kw">for</span> result <span class="kw">in</span> model.predict(source=<span class="st">"video.mp4"</span>, stream=<span class="kw">True</span>):
+    annotated = result.plot()
+    cv2.imshow(<span class="st">"YOLO"</span>, annotated)
+    <span class="kw">if</span> cv2.waitKey(<span class="nu">1</span>) & <span class="nu">0xFF</span> == ord(<span class="st">"q"</span>): <span class="kw">break</span></pre>
+      </div>
+
+      <h3 id="s7-seg">Segment Anything Model (SAM)</h3>
+
+      <p>SAM (Kirillov et al., Meta AI, 2023) es un modelo de segmentación fundacional entrenado sobre más de 1.000 millones de máscaras. Su capacidad es sorprendente: puede segmentar cualquier objeto en cualquier imagen a partir de un prompt mínimo: un punto, un bounding box, texto o incluso sin prompt (segmenta todo). SAM ha redefinido lo que significa etiquetar datos para segmentación.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">SAM — segmentación con prompt de punto</span></div>
+        <pre><span class="kw">from</span> segment_anything <span class="kw">import</span> sam_model_registry, <span class="cl">SamPredictor</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> cv2
+
+<span class="cm"># Descargar: wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth</span>
+sam = sam_model_registry[<span class="st">"vit_h"</span>](checkpoint=<span class="st">"sam_vit_h_4b8939.pth"</span>)
+sam.to(device=<span class="st">"cuda"</span>)
+
+predictor = <span class="cl">SamPredictor</span>(sam)
+
+<span class="cm"># Cargar imagen y configurar el predictor</span>
+image = cv2.imread(<span class="st">"imagen.jpg"</span>)
+image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+predictor.set_image(image)
+
+<span class="cm"># Segmentar a partir de un punto (click del usuario)</span>
+input_point = np.array([[320, 240]])   <span class="cm"># coordenadas x, y</span>
+input_label = np.array([<span class="nu">1</span>])           <span class="cm"># 1=foreground, 0=background</span>
+
+masks, scores, logits = predictor.predict(
+    point_coords=input_point,
+    point_labels=input_label,
+    multimask_output=<span class="kw">True</span>    <span class="cm"># retorna 3 máscaras candidatas</span>
+)
+
+<span class="cm"># masks: [3, H, W] booleano. Tomar la máscara con mayor score</span>
+best_mask = masks[scores.argmax()]
+print(f<span class="st">"Máscara seleccionada: {best_mask.sum()} píxeles"</span>)</pre>
+      </div>
+
+      <h3 id="s7-grounding">Grounding DINO: detección guiada por texto</h3>
+
+      <p><strong>Grounding DINO</strong> (Liu et al., 2023) combina el detector DINO con codificación de texto para crear un detector open-vocabulary: puede detectar cualquier objeto descrito en lenguaje natural, sin necesidad de haberlo visto en entrenamiento. Esto elimina la restricción de un conjunto fijo de clases y abre la puerta a pipelines completamente zero-shot.</p>
+
+      <p>La combinación Grounding DINO + SAM es particularmente poderosa: Grounding DINO detecta el objeto a partir de texto, proporciona el bounding box a SAM, y SAM genera la máscara de segmentación precisa. Este pipeline puede automatizar gran parte del proceso de etiquetado.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">Pipeline Grounding DINO + SAM</span></div>
+        <pre><span class="kw">from</span> groundingdino.util.inference <span class="kw">import</span> load_model, load_image, predict
+<span class="kw">from</span> segment_anything <span class="kw">import</span> sam_model_registry, <span class="cl">SamPredictor</span>
+<span class="kw">import</span> torch
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># ── Paso 1: Cargar modelos ─────────────────────────────────────</span>
+gdino = load_model(
+    <span class="st">"groundingdino/config/GroundingDINO_SwinT_OGC.py"</span>,
+    <span class="st">"weights/groundingdino_swint_ogc.pth"</span>
+)
+sam   = sam_model_registry[<span class="st">"vit_h"</span>](checkpoint=<span class="st">"weights/sam_vit_h.pth"</span>).cuda()
+predictor = <span class="cl">SamPredictor</span>(sam)
+
+<span class="cm"># ── Paso 2: Detectar con texto libre ──────────────────────────</span>
+image_source, image_tensor = load_image(<span class="st">"escena.jpg"</span>)
+
+boxes, logits, phrases = predict(
+    model=gdino,
+    image=image_tensor,
+    caption=<span class="st">"red fire extinguisher . safety helmet . yellow vest"</span>,
+    box_threshold=<span class="nu">0.35</span>,
+    text_threshold=<span class="nu">0.25</span>
+)
+<span class="cm"># boxes en formato cx,cy,w,h normalizados</span>
+print(f<span class="st">"Detectadas {len(boxes)} instancias: {phrases}"</span>)
+
+<span class="cm"># ── Paso 3: Segmentar con SAM ──────────────────────────────────</span>
+H, W, _ = image_source.shape
+predictor.set_image(image_source)
+
+<span class="kw">for</span> i, (box, phrase) <span class="kw">in</span> enumerate(zip(boxes, phrases)):
+    cx, cy, bw, bh = box.numpy()
+    xyxy = np.array([
+        (cx - bw/<span class="nu">2</span>) * W, (cy - bh/<span class="nu">2</span>) * H,
+        (cx + bw/<span class="nu">2</span>) * W, (cy + bh/<span class="nu">2</span>) * H
+    ])
+    masks, scores, _ = predictor.predict(box=xyxy, multimask_output=<span class="kw">False</span>)
+    print(f<span class="st">"[{phrase}] Máscara: {masks[0].sum()} px, score: {scores[0]:.3f}"</span>)</pre>
+      </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECCIÓN 8 — MODELOS FUNDACIONALES
+    ═══════════════════════════════════════════ -->
+    <section class="section" id="s8">
+      <div class="time-badge">40 min</div>
+      <div class="section-header">
+        <span class="section-num">08</span>
+        <h2>Modelos fundacionales en visión</h2>
+      </div>
+      <p class="section-intro">Los modelos fundacionales son modelos entrenados a escala masiva sobre datos amplios que pueden ser adaptados a una amplia variedad de tareas descendentes. En visión, han cambiado la forma en que se aborda cualquier tarea nueva.</p>
+
+      <h3 id="s8-clip">CLIP: alineamiento visión-lenguaje</h3>
+
+      <p><strong>CLIP</strong> (Contrastive Language-Image Pretraining, Radford et al., OpenAI, 2021) entrena conjuntamente un encoder de imágenes y un encoder de texto usando aprendizaje contrastivo sobre 400 millones de pares imagen-texto recogidos de internet. El objetivo es que la representación de una imagen y la de su descripción textual sean cercanas en el espacio de embeddings, mientras que pares no relacionados estén alejados.</p>
+
+      <div class="formula">
+        L = -log [ exp(sim(v_i, t_i)/τ) / Σ_j exp(sim(v_i, t_j)/τ) ]
+        <br><small style="color: var(--blue-300); font-size: 0.75rem;">Pérdida contrastiva simétrica sobre el batch &nbsp;·&nbsp; τ: temperatura aprendida</small>
+      </div>
+
+      <p>El resultado es un modelo que puede hacer clasificación zero-shot: dada una imagen, se calculan los scores de similitud con el texto de cada clase ("a photo of a cat", "a photo of a dog") y se predice la clase con mayor similitud. Sin ningún ejemplo de entrenamiento específico de la tarea.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">CLIP — clasificación zero-shot y búsqueda visual</span></div>
+        <pre><span class="kw">import</span> torch
+<span class="kw">import</span> clip
+<span class="kw">from</span> PIL <span class="kw">import</span> <span class="cl">Image</span>
+
+device = <span class="st">"cuda"</span> <span class="kw">if</span> torch.cuda.is_available() <span class="kw">else</span> <span class="st">"cpu"</span>
+model, preprocess = clip.load(<span class="st">"ViT-L/14"</span>, device=device)
+
+<span class="cm"># ── Clasificación zero-shot ────────────────────────────────────</span>
+image   = preprocess(<span class="cl">Image</span>.open(<span class="st">"foto.jpg"</span>)).unsqueeze(<span class="nu">0</span>).to(device)
+classes = [<span class="st">"a photo of a construction helmet"</span>,
+           <span class="st">"a photo of a fire extinguisher"</span>,
+           <span class="st">"a photo of a person walking"</span>]
+
+text_tokens = clip.tokenize(classes).to(device)
+
+<span class="kw">with</span> torch.no_grad():
+    image_features = model.encode_image(image)
+    text_features  = model.encode_text(text_tokens)
+
+    <span class="cm"># Normalizar para cosine similarity</span>
+    image_features /= image_features.norm(dim=-<span class="nu">1</span>, keepdim=<span class="kw">True</span>)
+    text_features  /= text_features.norm(dim=-<span class="nu">1</span>, keepdim=<span class="kw">True</span>)
+
+    similarities = (<span class="nu">100.0</span> * image_features @ text_features.T).softmax(dim=-<span class="nu">1</span>)
+
+<span class="kw">for</span> cls, prob <span class="kw">in</span> zip(classes, similarities[<span class="nu">0</span>]):
+    print(f<span class="st">"{cls}: {prob.item():.3f}"</span>)
+
+<span class="cm"># ── Búsqueda semántica en galería de imágenes ─────────────────</span>
+<span class="cm"># Precomputar embeddings de todas las imágenes una vez</span>
+<span class="cm"># Luego buscar con un query de texto en tiempo real</span>
+query  = clip.tokenize([<span class="st">"damaged road surface"</span>]).to(device)
+<span class="kw">with</span> torch.no_grad():
+    q_feat = model.encode_text(query)
+    q_feat /= q_feat.norm(dim=-<span class="nu">1</span>, keepdim=<span class="kw">True</span>)
+
+scores    = (gallery_features @ q_feat.T).squeeze()   <span class="cm"># gallery: [N, 768]</span>
+top_k_idx = scores.topk(<span class="nu">5</span>).indices</pre>
+      </div>
+
+      <h3 id="s8-llava">Modelos multimodales: LLaVA, GPT-4V, Gemini</h3>
+
+      <p>Los <strong>Large Vision-Language Models (LVLMs)</strong> combinan un encoder visual (típicamente CLIP o DINOv2) con un LLM de gran escala y aprenden a proyectar representaciones visuales al espacio de tokens del lenguaje. El resultado es un modelo capaz de mantener conversaciones sobre imágenes, describir escenas, razonar sobre contenido visual, responder preguntas y generar código basado en capturas de pantalla.</p>
+
+      <p><strong>LLaVA</strong> (Visual Instruction Tuning, Liu et al., 2023) fue el primer modelo open-source que demostró capacidades comparables a GPT-4V usando un pipeline de entrenamiento relativamente simple: un proyector lineal entre CLIP y LLaMA, entrenado con datos de instrucción generados por GPT-4. La arquitectura de LLaVA-1.5 y LLaVA-NeXT se convirtió en la base de la mayoría de los LVLMs open-source actuales.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">Inferencia con LLaVA usando transformers</span></div>
+        <pre><span class="kw">from</span> transformers <span class="kw">import</span> <span class="cl">LlavaNextProcessor</span>, <span class="cl">LlavaNextForConditionalGeneration</span>
+<span class="kw">from</span> PIL <span class="kw">import</span> <span class="cl">Image</span>
+<span class="kw">import</span> torch
+
+processor = <span class="cl">LlavaNextProcessor</span>.from_pretrained(<span class="st">"llava-hf/llava-v1.6-mistral-7b-hf"</span>)
+model     = <span class="cl">LlavaNextForConditionalGeneration</span>.from_pretrained(
+    <span class="st">"llava-hf/llava-v1.6-mistral-7b-hf"</span>,
+    torch_dtype=torch.float16,
+    device_map=<span class="st">"auto"</span>
+)
+
+image = <span class="cl">Image</span>.open(<span class="st">"escena_industrial.jpg"</span>)
+
+conversation = [
+    {
+        <span class="st">"role"</span>: <span class="st">"user"</span>,
+        <span class="st">"content"</span>: [
+            {<span class="st">"type"</span>: <span class="st">"image"</span>},
+            {<span class="st">"type"</span>: <span class="st">"text"</span>, <span class="st">"text"</span>: (
+                <span class="st">"Analiza esta imagen de una planta industrial. "</span>
+                <span class="st">"Identifica todos los EPIs (equipos de protección individual) "</span>
+                <span class="st">"visibles y señala si hay alguna situación de riesgo."</span>
+            )}
+        ]
+    }
+]
+
+prompt = processor.apply_chat_template(conversation, add_generation_prompt=<span class="kw">True</span>)
+inputs = processor(images=image, text=prompt, return_tensors=<span class="st">"pt"</span>).to(<span class="st">"cuda"</span>)
+
+output = model.generate(**inputs, max_new_tokens=<span class="nu">512</span>)
+print(processor.decode(output[<span class="nu">0</span>], skip_special_tokens=<span class="kw">True</span>))</pre>
+      </div>
+
+      <h3 id="s8-agents">Agentes visuales</h3>
+
+      <p>La siguiente frontera es la de los <strong>agentes visuales</strong>: sistemas que pueden percibir el entorno visual, planificar acciones y ejecutarlas en bucle cerrado. Estos sistemas combinan un LVLM como cerebro razonador con herramientas de visión especializadas (detectores, segmentadores, OCR, profundidad, tracking) que el agente puede invocar según necesite.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">Arquitectura de un agente visual simple</span></div>
+        <pre><span class="kw">from</span> openai <span class="kw">import</span> <span class="cl">OpenAI</span>
+<span class="kw">import</span> base64, json
+<span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cl">Path</span>
+
+client = <span class="cl">OpenAI</span>()
+
+<span class="kw">def</span> <span class="fn">encode_image</span>(path: str) -> str:
+    <span class="kw">return</span> base64.b64encode(<span class="cl">Path</span>(path).read_bytes()).decode()
+
+<span class="kw">def</span> <span class="fn">vision_agent</span>(image_path: str, task: str) -> dict:
+    <span class="st">"""
+    Agente visual que analiza una imagen y devuelve
+    un análisis estructurado en JSON.
+    """</span>
+    image_b64 = encode_image(image_path)
+    system_prompt = <span class="st">"""Eres un agente experto en inspección visual industrial.
+    Analiza la imagen y devuelve ÚNICAMENTE un JSON con:
+    {
+      "objects_detected": [...],
+      "safety_violations": [...],
+      "risk_level": "low|medium|high|critical",
+      "recommended_actions": [...]
+    }"""</span>
+
+    response = client.chat.completions.create(
+        model=<span class="st">"gpt-4o"</span>,
+        messages=[
+            {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: system_prompt},
+            {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: [
+                {<span class="st">"type"</span>: <span class="st">"text"</span>,  <span class="st">"text"</span>: task},
+                {<span class="st">"type"</span>: <span class="st">"image_url"</span>, <span class="st">"image_url"</span>: {
+                    <span class="st">"url"</span>: f<span class="st">"data:image/jpeg;base64,{image_b64}"</span>
+                }}
+            ]}
+        ],
+        max_tokens=<span class="nu">1000</span>
+    )
+    <span class="kw">return</span> json.loads(response.choices[<span class="nu">0</span>].message.content)</pre>
+      </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECCIÓN 9 — IA GENERATIVA EN CV
+    ═══════════════════════════════════════════ -->
+    <section class="section" id="s9">
+      <div class="time-badge">35 min</div>
+      <div class="section-header">
+        <span class="section-num">09</span>
+        <h2>IA Generativa en Computer Vision</h2>
+      </div>
+      <p class="section-intro">Los modelos generativos han pasado de ser herramientas de síntesis artística a componentes críticos en pipelines de datos y aplicaciones industriales.</p>
+
+      <h3 id="s9-gan">Redes Generativas Adversariales (GANs)</h3>
+
+      <p>Una GAN (Goodfellow et al., 2014) consiste en dos redes que se entrenan de forma adversarial: el <strong>generador</strong> aprende a producir imágenes realistas a partir de ruido aleatorio, mientras que el <strong>discriminador</strong> aprende a distinguir imágenes reales de generadas. El equilibrio de Nash de este juego produce un generador que sintetiza imágenes indistinguibles de las reales.</p>
+
+      <div class="formula">
+        min_G max_D  V(D,G) = E[log D(x)] + E[log(1 − D(G(z)))]
+        <br><small style="color: var(--blue-300); font-size: 0.75rem;">x ~ datos reales &nbsp;·&nbsp; z ~ distribución de ruido (Normal o Uniforme)</small>
+      </div>
+
+      <p>Las GANs más relevantes para aplicaciones prácticas en visión son StyleGAN3 (síntesis de caras fotorrealistas), Pix2Pix (traducción imagen-a-imagen supervisada) y CycleGAN (traducción sin pares de entrenamiento). Su uso principal hoy es la generación de datos sintéticos de entrenamiento para situaciones donde los datos reales son escasos o peligrosos de coleccionar (escenas de accidentes, defectos industriales, datos médicos).</p>
+
+      <h3 id="s9-diffusion">Modelos de difusión</h3>
+
+      <p>Los <strong>modelos de difusión</strong> (Diffusion Models, Ho et al., 2020) han superado a las GANs en calidad y diversidad de síntesis. La idea es conceptualmente elegante: en el proceso hacia adelante (<em>forward process</em>), se añade ruido gaussiano de forma incremental a una imagen real hasta que se convierte en ruido puro. En el proceso inverso (<em>reverse process</em>), una red neuronal aprende a predecir el ruido en cada paso y, por tanto, a revertir el proceso partiendo desde ruido puro hacia una imagen coherente.</p>
+
+      <div class="diagram">
+  Forward process (fixed, no learnable):
+  x₀ (imagen real) → x₁ → x₂ → ... → xₜ (ruido puro ~N(0,I))
+  q(xₜ|xₜ₋₁) = N(√(1-βₜ)·xₜ₋₁,  βₜ·I)
+
+  Reverse process (learnable):
+  xₜ (ruido) → ... → x₁ → x₀ (imagen generada)
+  p_θ(xₜ₋₁|xₜ) = N(μ_θ(xₜ,t),  Σ_θ(xₜ,t))
+
+  La red U-Net ε_θ aprende a predecir el ruido ε en cada paso t.</div>
+
+      <p>Stable Diffusion añade la innovación de operar en el espacio latente de un autoencoder (Latent Diffusion Models), reduciendo el costo computacional en 4-8×. La condicionación por texto se realiza mediante cross-attention con embeddings de CLIP, lo que permite generar imágenes a partir de descripciones en lenguaje natural.</p>
+
+      <h3 id="s9-apps">Aplicaciones prácticas en proyectos de CV</h3>
+
+      <p>Más allá de la generación artística, los modelos generativos tienen aplicaciones directas en pipelines de datos para Computer Vision:</p>
+
+      <p><strong>Data augmentation sintética.</strong> Cuando el dataset real es pequeño o está desbalanceado, se pueden generar imágenes sintéticas de las clases minoritarias. Con Stable Diffusion fine-tuned (técnicas como DreamBooth o LoRA) se pueden generar variaciones fotorrealistas de objetos industriales, defectos, condiciones de iluminación o ángulos de cámara que son raros en el dataset real.</p>
+
+      <p><strong>Domain adaptation.</strong> Si el modelo se entrena con imágenes diurnas pero debe funcionar de noche, CycleGAN o un modelo de difusión puede traducir las imágenes de entrenamiento al dominio nocturno, aumentando la robustez sin necesidad de colectar datos nocturnos etiquetados.</p>
+
+      <p><strong>Anonimización.</strong> En aplicaciones de vigilancia o datos médicos, los rostros y datos identificativos pueden ser reemplazados por versiones sintéticas realistas pero no identificables, preservando la utilidad de los datos para el entrenamiento.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">Generación de datos sintéticos con diffusers</span></div>
+        <pre><span class="kw">from</span> diffusers <span class="kw">import</span> <span class="cl">StableDiffusionPipeline</span>
+<span class="kw">import</span> torch
+<span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cl">Path</span>
+
+pipe = <span class="cl">StableDiffusionPipeline</span>.from_pretrained(
+    <span class="st">"runwayml/stable-diffusion-v1-5"</span>,
+    torch_dtype=torch.float16
+).to(<span class="st">"cuda"</span>)
+
+<span class="cm"># Generación de defectos sintéticos para dataset de inspección industrial</span>
+prompts = [
+    <span class="st">"macro photograph of a surface crack on grey concrete, high detail, studio lighting"</span>,
+    <span class="st">"close-up photo of metal corrosion rust spots, industrial inspection, photorealistic"</span>,
+    <span class="st">"overhead view of a pothole in asphalt road, natural daylight, high resolution"</span>,
+]
+
+output_dir = <span class="cl">Path</span>(<span class="st">"data/synthetic_defects"</span>)
+output_dir.mkdir(parents=<span class="kw">True</span>, exist_ok=<span class="kw">True</span>)
+
+<span class="kw">for</span> i, prompt <span class="kw">in</span> enumerate(prompts):
+    images = pipe(
+        prompt,
+        num_images_per_prompt=<span class="nu">20</span>,
+        num_inference_steps=<span class="nu">30</span>,
+        guidance_scale=<span class="nu">7.5</span>
+    ).images
+    <span class="kw">for</span> j, img <span class="kw">in</span> enumerate(images):
+        img.save(output_dir / f<span class="st">"defect_{i:02d}_{j:04d}.png"</span>)</pre>
+      </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECCIÓN 10 — INFERENCIA Y DESPLIEGUE
+    ═══════════════════════════════════════════ -->
+    <section class="section" id="s10">
+      <div class="time-badge">30 min</div>
+      <div class="section-header">
+        <span class="section-num">10</span>
+        <h2>Inferencia y despliegue del modelo</h2>
+      </div>
+      <p class="section-intro">Un modelo que no puede ejecutarse en producción de forma eficiente y fiable no tiene valor práctico. Esta sección cubre la conversión, optimización y empaquetado para despliegue.</p>
+
+      <h3 id="s10-onnx">Optimización: ONNX y TorchScript</h3>
+
+      <p>Los modelos PyTorch entrenados en modo eager no están optimizados para inferencia. Hay dos estrategias principales de exportación que eliminan el overhead del intérprete Python y habilitan optimizaciones de compilación:</p>
+
+      <p><strong>TorchScript</strong> compila el modelo a una representación intermedia que puede ejecutarse en C++ sin el Python runtime. Es la opción más simple para integración en sistemas C++.</p>
+
+      <p><strong>ONNX</strong> (Open Neural Network Exchange) exporta el modelo a un formato estándar portable que puede ejecutarse con distintos backends optimizados: ONNX Runtime (Microsoft), TensorRT (NVIDIA), OpenVINO (Intel), CoreML (Apple). Es la opción más flexible para despliegue multiplataforma.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">scripts/export.py — Exportación a ONNX</span></div>
+        <pre><span class="kw">import</span> torch
+<span class="kw">import</span> onnx
+<span class="kw">import</span> onnxruntime <span class="kw">as</span> ort
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">export_to_onnx</span>(model, save_path: str, input_shape=(1,3,224,224)):
+    model.eval()
+    dummy_input = torch.randn(*input_shape)
+
+    torch.onnx.export(
+        model,
+        dummy_input,
+        save_path,
+        opset_version=<span class="nu">17</span>,
+        input_names=[<span class="st">"input"</span>],
+        output_names=[<span class="st">"output"</span>],
+        dynamic_axes={                     <span class="cm"># permite batch variable</span>
+            <span class="st">"input"</span>:  {<span class="nu">0</span>: <span class="st">"batch_size"</span>},
+            <span class="st">"output"</span>: {<span class="nu">0</span>: <span class="st">"batch_size"</span>}
+        }
+    )
+
+    <span class="cm"># Verificar el grafo exportado</span>
+    onnx_model = onnx.load(save_path)
+    onnx.checker.check_model(onnx_model)
+    print(f<span class="st">"Modelo ONNX válido exportado a {save_path}"</span>)
+    <span class="kw">return</span> save_path
+
+
+<span class="kw">def</span> <span class="fn">run_onnx_inference</span>(onnx_path: str, image: np.ndarray) -> np.ndarray:
+    <span class="st">"""
+    Inferencia con ONNX Runtime. Mucho más rápido que PyTorch
+    en CPU gracias a las optimizaciones del runtime.
+    """</span>
+    session = ort.InferenceSession(
+        onnx_path,
+        providers=[<span class="st">"CUDAExecutionProvider"</span>, <span class="st">"CPUExecutionProvider"</span>]
+    )
+    input_name = session.get_inputs()[<span class="nu">0</span>].name
+    output     = session.run(<span class="kw">None</span>, {input_name: image})
+    <span class="kw">return</span> output[<span class="nu">0</span>]
+
+
+<span class="cm"># Benchmark: PyTorch vs ONNX Runtime</span>
+<span class="kw">import</span> time
+
+dummy = np.random.randn(<span class="nu">1</span>, <span class="nu">3</span>, <span class="nu">224</span>, <span class="nu">224</span>).astype(np.float32)
+N = <span class="nu">100</span>
+
+t0 = time.perf_counter()
+<span class="kw">for</span> _ <span class="kw">in</span> range(N): run_onnx_inference(<span class="st">"model.onnx"</span>, dummy)
+print(f<span class="st">"ONNX Runtime: {(time.perf_counter()-t0)/N*1000:.1f} ms/imagen"</span>)</pre>
+      </div>
+
+      <h3 id="s10-api">API de inferencia con FastAPI</h3>
+
+      <p>Para exponer el modelo como microservicio, FastAPI es la opción recomendada en Python por su rendimiento asíncrono, validación automática de tipos con Pydantic y generación automática de documentación OpenAPI.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-filename">api/main.py — API de inferencia</span></div>
+        <pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="cl">FastAPI</span>, <span class="cl">UploadFile</span>, <span class="cl">File</span>, <span class="cl">HTTPException</span>
+<span class="kw">from</span> fastapi.responses <span class="kw">import</span> <span class="cl">JSONResponse</span>
+<span class="kw">from</span> pydantic <span class="kw">import</span> <span class="cl">BaseModel</span>
+<span class="kw">from</span> PIL <span class="kw">import</span> <span class="cl">Image</span>
+<span class="kw">import</span> io, torch, numpy <span class="kw">as</span> np
+<span class="kw">from</span> torchvision <span class="kw">import</span> transforms
+<span class="kw">from</span> contextlib <span class="kw">import</span> asynccontextmanager
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="cl">List</span>
+
+<span class="cm"># Estado global del servidor</span>
+ml_state = {}
+
+<span class="de">@asynccontextmanager</span>
+<span class="kw">async def</span> <span class="fn">lifespan</span>(app: <span class="cl">FastAPI</span>):
+    <span class="cm"># Cargar modelo al arrancar (una sola vez)</span>
+    ml_state[<span class="st">"model"</span>]    = torch.load(<span class="st">"outputs/checkpoints/best_model.pth"</span>)
+    ml_state[<span class="st">"classes"</span>]  = [<span class="st">"crack"</span>, <span class="st">"corrosion"</span>, <span class="st">"normal"</span>]
+    ml_state[<span class="st">"transform"</span>] = transforms.<span class="cl">Compose</span>([
+        transforms.<span class="cl">Resize</span>((<span class="nu">224</span>, <span class="nu">224</span>)),
+        transforms.<span class="cl">ToTensor</span>(),
+        transforms.<span class="cl">Normalize</span>([<span class="nu">0.485</span>,<span class="nu">0.456</span>,<span class="nu">0.406</span>], [<span class="nu">0.229</span>,<span class="nu">0.224</span>,<span class="nu">0.225</span>])
+    ])
+    print(<span class="st">"Modelo cargado correctamente"</span>)
+    <span class="kw">yield</span>
+    ml_state.clear()
+
+app = <span class="cl">FastAPI</span>(title=<span class="st">"CV Inference API"</span>, version=<span class="st">"1.0"</span>, lifespan=lifespan)
+
+
+<span class="kw">class</span> <span class="cl">PredictionResult</span>(<span class="cl">BaseModel</span>):
+    label: str
+    confidence: float
+    all_scores: <span class="cl">List</span>[dict]
+
+
+<span class="de">@app.post</span>(<span class="st">"/predict"</span>, response_model=<span class="cl">PredictionResult</span>)
+<span class="kw">async def</span> <span class="fn">predict</span>(file: <span class="cl">UploadFile</span> = <span class="cl">File</span>(...)):
+    <span class="kw">if</span> file.content_type <span class="kw">not in</span> [<span class="st">"image/jpeg"</span>, <span class="st">"image/png"</span>]:
+        <span class="kw">raise</span> <span class="cl">HTTPException</span>(<span class="nu">400</span>, <span class="st">"Solo se aceptan imágenes JPEG o PNG"</span>)
+
+    contents = <span class="kw">await</span> file.read()
+    image    = <span class="cl">Image</span>.open(io.<span class="cl">BytesIO</span>(contents)).convert(<span class="st">"RGB"</span>)
+    tensor   = ml_state[<span class="st">"transform"</span>](image).unsqueeze(<span class="nu">0</span>)
+
+    <span class="kw">with</span> torch.no_grad():
+        logits = ml_state[<span class="st">"model"</span>](tensor)
+        probs  = torch.softmax(logits, dim=<span class="nu">1</span>)[<span class="nu">0</span>].tolist()
+
+    pred_idx = int(np.argmax(probs))
+    <span class="kw">return</span> <span class="cl">PredictionResult</span>(
+        label=ml_state[<span class="st">"classes"</span>][pred_idx],
+        confidence=probs[pred_idx],
+        all_scores=[
+            {<span class="st">"class"</span>: cls, <span class="st">"score"</span>: round(prob, <span class="nu">4</span>)}
+            <span class="kw">for</span> cls, prob <span class="kw">in</span> zip(ml_state[<span class="st">"classes"</span>], probs)
+        ]
+    )
+
+<span class="de">@app.get</span>(<span class="st">"/health"</span>)
+<span class="kw">async def</span> <span class="fn">health</span>():
+    <span class="kw">return</span> {<span class="st">"status"</span>: <span class="st">"ok"</span>, <span class="st">"model_loaded"</span>: <span class="st">"model"</span> <span class="kw">in</span> ml_state}
+
+<span class="cm"># Arrancar: uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 4</span></pre>
+      </div>
+
+      <div class="tip">
+        <span class="callout-label">Contenedorización</span>
+        Para despliegue en producción, empaqueta siempre la API en un contenedor Docker. Esto garantiza reproducibilidad del entorno y simplifica el despliegue en cualquier infraestructura (servidor propio, AWS, GCP, Kubernetes). Usa una imagen base CUDA oficial de NVIDIA si necesitas aceleración GPU. Añade un archivo <code>docker-compose.yml</code> para orquestar la API junto con otros servicios (base de datos de resultados, cola de mensajes para inferencia asíncrona).
+      </div>
+
+      <h3>Resumen del estado del arte y perspectivas</h3>
+
+      <p>El campo de Computer Vision ha experimentado una transformación radical en los últimos cuatro años. Los modelos fundacionales (CLIP, SAM, DINOv2, Grounding DINO) han desplazado el paradigma de "entrenar un modelo específico para cada tarea" hacia un paradigma de "adaptar un modelo fundacional a la tarea con pocos datos o ninguno". Los LVLMs (LLaVA, GPT-4V, Gemini Vision) han añadido una capa de razonamiento lingüístico sobre la percepción visual que abre posibilidades completamente nuevas en inspección, análisis y automatización.</p>
+
+      <p>Al mismo tiempo, los modelos de difusión han democratizado la síntesis de imágenes a calidad fotorrealista, lo que tiene implicaciones tanto positivas (generación de datos sintéticos, prototipado rápido) como negativas (deepfakes, desinformación) que la ingeniería de sistemas de visión debe considerar activamente.</p>
+
+      <p>Los próximos años probablemente traerán modelos aún más capaces de razonamiento espacial y temporal (video), una integración más profunda entre percepción y acción (robots, vehículos autónomos) y arquitecturas cada vez más eficientes que permitan ejecutar modelos potentes en dispositivos embebidos.</p>
+
+      <div class="important">
+        <span class="callout-label">Para profundizar</span>
+        Repositorios y recursos recomendados para continuar aprendiendo: <strong>Papers With Code</strong> (benchmarks actualizados), <strong>Hugging Face</strong> (modelos y datasets), <strong>timm</strong> (pytorch-image-models), <strong>MMDetection / MMSegmentation</strong> (OpenMMLab), y el repositorio de <strong>Ultralytics</strong> para detección en producción. Los cursos de Stanford CS231n y los cursos de fast.ai son referencias para profundizar en fundamentos.
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+<footer style="background: var(--blue-900); border-top: 1px solid var(--blue-800); padding: 2rem; text-align: center; margin-top: 2rem;">
+  <p style="font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--blue-400); letter-spacing: 0.08em;">
+    Material académico — Ingeniería Computer Vision &nbsp;·&nbsp; Deep Learning Session &nbsp;·&nbsp; Uso interno docente
+  </p>
+</footer>
+
+</body>
+</html>

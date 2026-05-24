@@ -1,0 +1,56 @@
+{
+  "project_name": "lse_static_alphabet_classifier",
+  "random_seed": 42,
+  "paths": {
+    "dataset_root": "dataset/Image",
+    "data_dir": "data",
+    "raw_dir": "data/raw",
+    "interim_dir": "data/interim",
+    "processed_dir": "data/processed",
+    "outputs_dir": "outputs",
+    "checkpoints_dir": "outputs/checkpoints",
+    "logs_dir": "outputs/logs",
+    "metrics_dir": "outputs/metrics",
+    "inference_dir": "outputs/inference"
+  },
+  "data": {
+    "image_size": 128,
+    "train_split": 0.7,
+    "val_split": 0.15,
+    "test_split": 0.15,
+    "batch_size": 32,
+    "num_workers": 0,
+    "allowed_extensions": [
+      ".png",
+      ".jpg",
+      ".jpeg"
+    ]
+  },
+  "training": {
+    "epochs": 18,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "early_stopping_patience": 5,
+    "label_smoothing": 0.05,
+    "save_every": 1
+  },
+  "inference": {
+    "top_k": 3,
+    "confidence_threshold": 0.55,
+    "webcam_camera_index": 0,
+    "roi_size": 320,
+    "mirror_webcam": true
+  },
+  "model": {
+    "input_channels": 3,
+    "conv_channels": [
+      32,
+      64,
+      128,
+      256
+    ],
+    "classifier_hidden_dim": 256,
+    "dropout": 0.35,
+    "architecture": "mobilenetv2"
+  }
+}
